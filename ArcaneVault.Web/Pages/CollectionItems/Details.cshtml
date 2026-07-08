@@ -1,0 +1,47 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{id:int}"
+@model ArcaneVault.Web.Pages.CollectionItems.DetailsModel
+@{
+    ViewData["Title"] = "Item Details";
+}
+
+<h2 class="mb-3">Item Details</h2>
+
+@if (Model.Item == null)
+{
+    <div class="alert alert-warning">Item not found.</div>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Item ID</dt>
+        <dd class="col-sm-9">@Model.Item.ItemId</dd>
+
+        <dt class="col-sm-3">Item Name</dt>
+        <dd class="col-sm-9">@Model.Item.ItemName</dd>
+
+        <dt class="col-sm-3">Categories</dt>
+        <dd class="col-sm-9">
+            @if (Model.Item.Categories.Any())
+            {
+                @string.Join(", ", Model.Item.Categories.Select(c => $"{c.CategoryCode} — {c.CategoryName}"))
+            }
+            else
+            {
+                <span class="text-muted">None</span>
+            }
+        </dd>
+
+        <dt class="col-sm-3">Starting Quantity</dt>
+        <dd class="col-sm-9">@Model.Item.StartingQuantity</dd>
+
+        <dt class="col-sm-3">Current Quantity</dt>
+        <dd class="col-sm-9">@Model.Item.CurrentQuantity</dd>
+
+        <dt class="col-sm-3">Owner</dt>
+        <dd class="col-sm-9">@Model.Item.UserName</dd>
+    </dl>
+
+    <a asp-page="Edit" asp-route-id="@Model.Item.ItemId" class="btn btn-warning me-2">Edit</a>
+    <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+}

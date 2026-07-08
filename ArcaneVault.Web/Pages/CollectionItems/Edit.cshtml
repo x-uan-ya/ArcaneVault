@@ -1,0 +1,55 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{id:int}"
+@model ArcaneVault.Web.Pages.CollectionItems.EditModel
+@{
+    ViewData["Title"] = "Edit Item";
+}
+
+<h2 class="mb-3">Edit Item</h2>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-7">
+        <form method="post">
+            <div class="mb-3">
+                <label asp-for="Input.ItemName" class="form-label"></label>
+                <input asp-for="Input.ItemName" class="form-control" />
+                <span asp-validation-for="Input.ItemName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.CurrentQuantity" class="form-label"></label>
+                <input asp-for="Input.CurrentQuantity" class="form-control" type="number" min="0" />
+                <span asp-validation-for="Input.CurrentQuantity" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Categories</label>
+                @foreach (var cat in Model.AllCategories)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               name="Input.SelectedCategoryCodes"
+                               value="@cat.CategoryCode"
+                               id="cat_@cat.CategoryCode"
+                               @(Model.Input.SelectedCategoryCodes.Contains(cat.CategoryCode) ? "checked" : "") />
+                        <label class="form-check-label" for="cat_@cat.CategoryCode">
+                            @cat.CategoryCode — @cat.CategoryName
+                        </label>
+                    </div>
+                }
+            </div>
+
+            <button type="submit" class="btn btn-warning">Save Changes</button>
+            <a asp-page="Index" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

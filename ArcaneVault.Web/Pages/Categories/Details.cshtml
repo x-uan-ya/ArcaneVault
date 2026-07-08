@@ -1,0 +1,27 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{code}"
+@model ArcaneVault.Web.Pages.Categories.DetailsModel
+@{
+    ViewData["Title"] = "Category Details";
+}
+
+<h2 class="mb-3">Category Details</h2>
+
+@if (Model.Category == null)
+{
+    <div class="alert alert-warning">Category not found.</div>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Category Code</dt>
+        <dd class="col-sm-9">@Model.Category.CategoryCode</dd>
+
+        <dt class="col-sm-3">Category Name</dt>
+        <dd class="col-sm-9">@Model.Category.CategoryName</dd>
+    </dl>
+
+    <a asp-page="Edit" asp-route-code="@Model.Category.CategoryCode"
+       class="btn btn-warning me-2">Edit</a>
+    <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+}

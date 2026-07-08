@@ -1,0 +1,39 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{id:int}"
+@model ArcaneVault.Web.Pages.CollectionItems.DeleteModel
+@{
+    ViewData["Title"] = "Delete Item";
+}
+
+<h2 class="mb-3">Remove from Collection</h2>
+
+@if (Model.Item == null)
+{
+    <div class="alert alert-warning">Item not found.</div>
+}
+else
+{
+    <div class="alert alert-danger">
+        Are you sure you want to remove <strong>@Model.Item.ItemName</strong>?
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Item Name</dt>
+        <dd class="col-sm-9">@Model.Item.ItemName</dd>
+
+        <dt class="col-sm-3">Categories</dt>
+        <dd class="col-sm-9">
+            @(Model.Item.Categories.Any()
+                ? string.Join(", ", Model.Item.Categories.Select(c => c.CategoryName))
+                : "None")
+        </dd>
+
+        <dt class="col-sm-3">Current Quantity</dt>
+        <dd class="col-sm-9">@Model.Item.CurrentQuantity</dd>
+    </dl>
+
+    <form method="post">
+        <button type="submit" class="btn btn-danger">Yes, Remove</button>
+        <a asp-page="Index" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+}

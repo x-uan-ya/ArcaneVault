@@ -1,0 +1,50 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model ArcaneVault.Web.Pages.Categories.IndexModel
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Collection Categories</h2>
+    <a asp-page="Create" class="btn btn-success">+ New Category</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (Model.Categories.Count == 0)
+{
+    <p class="text-muted">No categories found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Category Code</th>
+                <th>Category Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cat in Model.Categories)
+            {
+                <tr>
+                    <td>@cat.CategoryCode</td>
+                    <td>@cat.CategoryName</td>
+                    <td>
+                        <a asp-page="Details" asp-route-code="@cat.CategoryCode"
+                           class="btn btn-sm btn-info me-1">Details</a>
+                        <a asp-page="Edit" asp-route-code="@cat.CategoryCode"
+                           class="btn btn-sm btn-warning me-1">Edit</a>
+                        <a asp-page="Delete" asp-route-code="@cat.CategoryCode"
+                           class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

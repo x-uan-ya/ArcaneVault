@@ -1,0 +1,177 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model ArcaneVault.Web.Pages.Analytics.IndexModel
+@{
+    ViewData["Title"] = "Analytics Dashboard";
+}
+
+<h2 class="mb-1">📊 Analytics Dashboard</h2>
+<p class="text-muted mb-4">Platform-wide collection insights</p>
+
+@* Export button *@
+<div class="mb-3">
+    <a asp-page-handler="DownloadCsv" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-download"></i> Export to CSV
+    </a>
+</div>
+
+@* Summary cards *@
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold">@Model.Summary?.TotalUsers</h1>
+                <p class="card-text fs-5">Registered Collectors</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold">@Model.Summary?.TotalItems</h1>
+                <p class="card-text fs-5">Collection Items</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold">@Model.Summary?.TotalCategories</h1>
+                <p class="card-text fs-5">Categories</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    @* Items per Category bar chart *@
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Items per Category</div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+
+    @* Top Collectors bar chart *@
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Top Collectors (by Current Quantity)</div>
+            <div class="card-body">
+                <canvas id="collectorsChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Collection Growth comparison chart *@
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">Collection Growth: Starting vs Current Quantity per Category</div>
+            <div class="card-body">
+                <canvas id="growthChart" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Top Collectors table *@
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">Top 10 Collectors</div>
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Unique Items</th>
+                            <th>Total Current Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.TopCollectors.Count; i++)
+                        {
+                            var c = Model.TopCollectors[i];
+                            <tr>
+                                <td>@(i + 1)</td>
+                                <td>@c.UserName</td>
+                                <td>@c.TotalItems</td>
+                                <td>@c.TotalCurrentQty</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Data from page model serialised as JSON
+    const categoryData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ItemsPerCategory));
+    const collectorData  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopCollectors));
+    const growthData     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CollectionGrowth));
+
+    // Colour palette helper
+    function palette(n) {
+        const c = ['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f',
+                   '#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac'];
+        return Array.from({length: n}, (_, i) => c[i % c.length]);
+    }
+
+    // Items per Category
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: categoryData.map(d => d.categoryName),
+            datasets: [{
+                label: 'Items',
+                data: categoryData.map(d => d.itemCount),
+                backgroundColor: palette(categoryData.length)
+            }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Top Collectors
+    new Chart(document.getElementById('collectorsChart'), {
+        type: 'bar',
+        data: {
+            labels: collectorData.map(d => d.userName),
+            datasets: [{
+                label: 'Total Current Qty',
+                data: collectorData.map(d => d.totalCurrentQty),
+                backgroundColor: palette(collectorData.length)
+            }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Growth Chart
+    new Chart(document.getElementById('growthChart'), {
+        type: 'bar',
+        data: {
+            labels: growthData.map(d => d.categoryName),
+            datasets: [
+                {
+                    label: 'Starting Qty',
+                    data: growthData.map(d => d.totalStarting),
+                    backgroundColor: '#4e79a7'
+                },
+                {
+                    label: 'Current Qty',
+                    data: growthData.map(d => d.totalCurrent),
+                    backgroundColor: '#f28e2b'
+                }
+            ]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+</script>
+}

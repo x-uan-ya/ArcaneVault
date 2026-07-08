@@ -1,0 +1,35 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{code}"
+@model ArcaneVault.Web.Pages.Categories.EditModel
+@{
+    ViewData["Title"] = "Edit Category";
+}
+
+<h2 class="mb-3">Edit Category</h2>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Category Code</label>
+                <input class="form-control" value="@Model.Input.CategoryCode" readonly disabled />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.CategoryName" class="form-label"></label>
+                <input asp-for="Input.CategoryName" class="form-control" />
+                <span asp-validation-for="Input.CategoryName" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-warning">Save Changes</button>
+            <a asp-page="Index" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

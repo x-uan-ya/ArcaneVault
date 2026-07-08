@@ -1,0 +1,33 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{code}"
+@model ArcaneVault.Web.Pages.Categories.DeleteModel
+@{
+    ViewData["Title"] = "Delete Category";
+}
+
+<h2 class="mb-3">Delete Category</h2>
+
+@if (Model.Category == null)
+{
+    <div class="alert alert-warning">Category not found.</div>
+}
+else
+{
+    <div class="alert alert-danger">
+        Are you sure you want to delete <strong>@Model.Category.CategoryCode — @Model.Category.CategoryName</strong>?
+        This cannot be undone.
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Category Code</dt>
+        <dd class="col-sm-9">@Model.Category.CategoryCode</dd>
+
+        <dt class="col-sm-3">Category Name</dt>
+        <dd class="col-sm-9">@Model.Category.CategoryName</dd>
+    </dl>
+
+    <form method="post">
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a asp-page="Index" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+}

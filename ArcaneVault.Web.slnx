@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ArcaneVault.API/ArcaneVault.API.csproj" />
+  <Project Path="ArcaneVault.Web/ArcaneVault.Web.csproj">
+    <BuildDependency Project="ArcaneVault.API/ArcaneVault.API.csproj" />
+  </Project>
+</Solution>

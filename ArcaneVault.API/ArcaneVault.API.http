@@ -1,0 +1,6 @@
+@ArcaneVault.API_HostAddress = http://localhost:5137
+
+GET {{ArcaneVault.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

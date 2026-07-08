@@ -1,0 +1,53 @@
+﻿@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center py-5">
+    <h1 class="display-4">🗝️ Welcome to ArcaneVault</h1>
+    <p class="lead text-muted">Your personal collectible collection manager.</p>
+
+    @if (HttpContext.Session.GetString("UserName") == null)
+    {
+        <a asp-page="/Account/Login" class="btn btn-primary btn-lg me-2">Login</a>
+        <a asp-page="/Account/Register" class="btn btn-outline-primary btn-lg">Register</a>
+    }
+    else
+    {
+        <a asp-page="/CollectionItems/Index" class="btn btn-success btn-lg me-2">View My Collection</a>
+        @if (HttpContext.Session.GetString("RoleName") == "Staff")
+        {
+            <a asp-page="/Categories/Index" class="btn btn-info btn-lg me-2">Manage Categories</a>
+            <a asp-page="/Analytics/Index" class="btn btn-dark btn-lg">📊 Analytics</a>
+        }
+    }
+</div>
+
+<div class="row mt-4 g-4 text-center">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3>📦 Manage Your Collection</h3>
+                <p class="text-muted">Add, update, and track your collectible items easily.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3>🏷️ Categorise Items</h3>
+                <p class="text-muted">Organise items by category for easy browsing.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3>📊 Insights</h3>
+                <p class="text-muted">Staff can view platform-wide analytics and trends.</p>
+            </div>
+        </div>
+    </div>
+</div>
