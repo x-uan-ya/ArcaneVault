@@ -1,0 +1,200 @@
+@page
+@model ArcaneVault.Web.Pages.Marketplace.MyOffersModel
+@{
+    ViewData["Title"] = "My Offers";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-envelope"></i> My Offers</h2>
+        <a asp-page="Index" class="btn btn-primary">
+            <i class="bi bi-search"></i> Browse Marketplace
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-send"></i> Offers I've Made (@Model.MyOffers.Count)</h5>
+        </div>
+        <div class="card-body">
+            @if (!Model.MyOffers.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-3">You haven't made any offers yet.</p>
+                    <a asp-page="Index" class="btn btn-primary">Browse Marketplace</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Listing</th>
+                                <th>Seller</th>
+                                <th>Type</th>
+                                <th>Your Offer</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                                <th>Offered Date</th>
+                                <th>Response Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var offer in Model.MyOffers.OrderByDescending(o => o.OfferedDate))
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-page="Details" asp-route-id="@offer.ListingId" class="text-decoration-none">
+                                            @offer.ListingTitle
+                                        </a>
+                                    </td>
+                                    <td>@offer.SellerUserName</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@offer.OfferType</span>
+                                    </td>
+                                    <td>
+                                        @if (offer.OfferedPrice.HasValue)
+                                        {
+                                            <text>$@offer.OfferedPrice.Value.ToString("N2")</text>
+                                        }
+                                        else
+                                        {
+                                            <text>Trade</text>
+                                        }
+                                    </td>
+                                    <td>@offer.QuantityRequested</td>
+                                    <td>
+                                        @if (offer.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock"></i> @offer.Status
+                                            </span>
+                                        }
+                                        else if (offer.Status == "Accepted")
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> @offer.Status
+                                            </span>
+                                        }
+                                        else if (offer.Status == "Rejected")
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> @offer.Status
+                                            </span>
+                                        }
+                                        else if (offer.Status == "Withdrawn")
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-arrow-counterclockwise"></i> @offer.Status
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@offer.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@offer.OfferedDate.ToString("MMM dd, yyyy")</small>
+                                    </td>
+                                    <td>
+                                        @if (offer.ResponseDate.HasValue)
+                                        {
+                                            <small>@offer.ResponseDate.Value.ToString("MMM dd, yyyy")</small>
+                                        }
+                                        else
+                                        {
+                                            <text>-</text>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (offer.Status == "Pending")
+                                        {
+                                            <form method="post" asp-page-handler="WithdrawOffer" class="d-inline">
+                                                <input type="hidden" name="offerId" value="@offer.OfferId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Are you sure you want to withdraw this offer?');">
+                                                    <i class="bi bi-x-circle"></i> Withdraw
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (offer.Status == "Accepted")
+                                        {
+                                            <span class="text-success">
+                                                <i class="bi bi-gift"></i> Item transferred
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h3 class="text-warning">@Model.MyOffers.Count(o => o.Status == "Pending")</h3>
+                                <p class="mb-0 text-muted">Pending</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h3 class="text-success">@Model.MyOffers.Count(o => o.Status == "Accepted")</h3>
+                                <p class="mb-0 text-muted">Accepted</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-danger">
+                            <div class="card-body text-center">
+                                <h3 class="text-danger">@Model.MyOffers.Count(o => o.Status == "Rejected")</h3>
+                                <p class="mb-0 text-muted">Rejected</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-secondary">
+                            <div class="card-body text-center">
+                                <h3 class="text-secondary">@Model.MyOffers.Count(o => o.Status == "Withdrawn")</h3>
+                                <p class="mb-0 text-muted">Withdrawn</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-page="MyListings" class="btn btn-outline-primary">
+            <i class="bi bi-list-ul"></i> View My Listings
+        </a>
+    </div>
+</div>

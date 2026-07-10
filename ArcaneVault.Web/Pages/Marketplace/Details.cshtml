@@ -1,0 +1,238 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page "{id:int}"
+@model ArcaneVault.Web.Pages.Marketplace.DetailsModel
+@{
+    ViewData["Title"] = Model.Listing?.Title ?? "Listing Details";
+}
+
+@if (Model.Listing == null)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Listing not found.
+    </div>
+    <a asp-page="/Marketplace/Index" class="btn btn-primary">← Back to Marketplace</a>
+}
+else
+{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Marketplace/Index">Marketplace</a></li>
+            <li class="breadcrumb-item active">@Model.Listing.Title</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h2 class="mb-1">@Model.Listing.Title</h2>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-box"></i> Item: @Model.Listing.Item.ItemName
+                            </p>
+                        </div>
+                        @if (Model.Listing.IsFeatured)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-star-fill"></i> Featured
+                            </span>
+                        }
+                    </div>
+
+                    @if (Model.Listing.Item.Categories != null && Model.Listing.Item.Categories.Any())
+                    {
+                        <div class="mb-3">
+                            @foreach (var cat in Model.Listing.Item.Categories)
+                            {
+                                <span class="badge bg-secondary me-1">@cat.CategoryName</span>
+                            }
+                        </div>
+                    }
+
+                    <div class="alert alert-light border">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Price</small>
+                                @if (Model.Listing.ListingType == "Sale" || Model.Listing.ListingType == "Both")
+                                {
+                                    <h4 class="text-success mb-0">$@Model.Listing.AskingPrice?.ToString("N2")</h4>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">Trade Only</span>
+                                }
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Type</small>
+                                <strong>@Model.Listing.ListingType</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Quantity</small>
+                                <strong>@Model.Listing.QuantityAvailable</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Views</small>
+                                <strong>@Model.Listing.ViewCount</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5>Description</h5>
+                    <p class="text-muted">
+                        @if (string.IsNullOrWhiteSpace(Model.Listing.Description))
+                        {
+                            <em>No description provided.</em>
+                        }
+                        else
+                        {
+                            @Model.Listing.Description
+                        }
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Listing.TradePreferences))
+                    {
+                        <h5>Trade Preferences</h5>
+                        <p class="text-muted">@Model.Listing.TradePreferences</p>
+                    }
+
+                    <hr>
+
+                    <div class="row text-muted small">
+                        <div class="col-md-6">
+                            <i class="bi bi-person"></i> Seller: <strong>@Model.Listing.SellerUserName</strong>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <i class="bi bi-calendar"></i> Listed: @Model.Listing.ListedDate.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
+                        </div>
+                    </div>
+                    @if (Model.Listing.ExpirationDate.HasValue)
+                    {
+                        <div class="text-muted small mt-2">
+                            <i class="bi bi-clock"></i> Expires: @Model.Listing.ExpirationDate.Value.ToLocalTime().ToString("MMM dd, yyyy")
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger">@Model.ErrorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success">@Model.SuccessMessage</div>
+            }
+
+            @if (SessionHelper.IsLoggedIn(HttpContext.Session))
+            {
+                var currentUser = SessionHelper.GetUserName(HttpContext.Session);
+                
+                @if (Model.Listing.SellerUserName == currentUser)
+                {
+                    <div class="card mb-3 border-warning">
+                        <div class="card-body">
+                            <h5 class="card-title">Your Listing</h5>
+                            <p class="text-muted small">You cannot make an offer on your own listing.</p>
+                            @if (Model.Listing.PendingOfferCount > 0)
+                            {
+                                <a asp-page="/Marketplace/MyListings" class="btn btn-warning w-100">
+                                    <i class="bi bi-inbox"></i> View @Model.Listing.PendingOfferCount Pending Offer(s)
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (Model.Listing.Status == "Active")
+                {
+                    <div class="card mb-3" id="make-offer">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Make an Offer</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label class="form-label">Offer Type</label>
+                                    <select asp-for="OfferType" class="form-select" required>
+                                        @if (Model.Listing.ListingType == "Sale" || Model.Listing.ListingType == "Both")
+                                        {
+                                            <option value="Purchase">Purchase Offer</option>
+                                        }
+                                        @if (Model.Listing.ListingType == "Trade" || Model.Listing.ListingType == "Both")
+                                        {
+                                            <option value="Trade">Trade Offer</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <div class="mb-3" id="priceField">
+                                    <label class="form-label">Your Offer Price</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="OfferedPrice" type="number" class="form-control" min="0.01" step="0.01" placeholder="@Model.Listing.AskingPrice">
+                                    </div>
+                                    @if (Model.Listing.AskingPrice.HasValue)
+                                    {
+                                        <small class="text-muted">Asking price: $@Model.Listing.AskingPrice.Value.ToString("N2")</small>
+                                    }
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity</label>
+                                    <input asp-for="QuantityRequested" type="number" class="form-control" min="1" max="@Model.Listing.QuantityAvailable" value="1" required>
+                                    <small class="text-muted">Available: @Model.Listing.QuantityAvailable</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Message (optional)</label>
+                                    <textarea asp-for="Message" class="form-control" rows="3" placeholder="Add a message to the seller..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-send"></i> Submit Offer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <strong>Status: @Model.Listing.Status</strong><br>
+                        This listing is no longer active.
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-lock display-4 text-muted"></i>
+                        <p class="mt-3">Please log in to make an offer on this listing.</p>
+                        <a asp-page="/Account/Login" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    // Show/hide price field based on offer type
+    document.querySelector('select[name="OfferType"]')?.addEventListener('change', function() {
+        const priceField = document.getElementById('priceField');
+        if (this.value === 'Trade') {
+            priceField.style.display = 'none';
+            document.querySelector('input[name="OfferedPrice"]').removeAttribute('required');
+        } else {
+            priceField.style.display = 'block';
+            document.querySelector('input[name="OfferedPrice"]').setAttribute('required', 'required');
+        }
+    });
+</script>
+}

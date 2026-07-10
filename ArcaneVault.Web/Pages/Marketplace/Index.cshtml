@@ -1,0 +1,172 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model ArcaneVault.Web.Pages.Marketplace.IndexModel
+@{
+    ViewData["Title"] = "Marketplace";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">🛒 Marketplace</h2>
+        <p class="text-muted mb-0">Buy, sell, and trade collection items</p>
+    </div>
+    <div>
+        <a asp-page="/Marketplace/MyListings" class="btn btn-outline-primary me-2">
+            <i class="bi bi-list-ul"></i> My Listings
+        </a>
+        <a asp-page="/Marketplace/MyOffers" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-inbox"></i> My Offers
+        </a>
+        <a asp-page="/Marketplace/Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Create Listing
+        </a>
+    </div>
+</div>
+
+@* Search and Filters *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="Search items...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Listing Type</label>
+                <select name="listingType" class="form-select">
+                    <option value="">All</option>
+                    <option value="Sale" selected="@(Model.ListingType == "Sale")">Sale</option>
+                    <option value="Trade" selected="@(Model.ListingType == "Trade")">Trade</option>
+                    <option value="Both" selected="@(Model.ListingType == "Both")">Both</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Min Price</label>
+                <input type="number" name="minPrice" value="@Model.MinPrice" class="form-control" placeholder="0" min="0" step="0.01">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Max Price</label>
+                <input type="number" name="maxPrice" value="@Model.MaxPrice" class="form-control" placeholder="Any" min="0" step="0.01">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Listings == null || Model.Listings.Count == 0)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No listings found. @(string.IsNullOrEmpty(Model.SearchTerm) ? "Be the first to list an item!" : "Try adjusting your search filters.")
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var listing in Model.Listings)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm listing-card">
+                    @if (listing.IsFeatured)
+                    {
+                        <div class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">
+                            <i class="bi bi-star-fill"></i> Featured
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a asp-page="/Marketplace/Details" asp-route-id="@listing.ListingId" class="text-decoration-none">
+                                @listing.Title
+                            </a>
+                        </h5>
+                        
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-box"></i> @listing.ItemName
+                        </p>
+
+                        @if (!string.IsNullOrEmpty(listing.Description) && listing.Description.Length > 100)
+                        {
+                            <p class="card-text text-muted">@listing.Description.Substring(0, 100)...</p>
+                        }
+                        else if (!string.IsNullOrEmpty(listing.Description))
+                        {
+                            <p class="card-text text-muted">@listing.Description</p>
+                        }
+
+                        <div class="mb-2">
+                            @if (listing.Categories != null)
+                            {
+                                @foreach (var cat in listing.Categories)
+                                {
+                                    <span class="badge bg-secondary me-1">@cat.CategoryName</span>
+                                }
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                @if (listing.ListingType == "Sale" || listing.ListingType == "Both")
+                                {
+                                    <h4 class="text-success mb-0">
+                                        $@listing.AskingPrice?.ToString("N2")
+                                    </h4>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">Trade Only</span>
+                                }
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">
+                                    <i class="bi bi-box-seam"></i> Qty: @listing.QuantityAvailable
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center text-muted small mb-3">
+                            <span><i class="bi bi-person"></i> @listing.SellerUserName</span>
+                            <span><i class="bi bi-eye"></i> @listing.ViewCount views</span>
+                        </div>
+
+                        @if (listing.OfferCount > 0)
+                        {
+                            <div class="alert alert-info py-1 px-2 mb-2 small">
+                                <i class="bi bi-inbox"></i> @listing.OfferCount pending offer(s)
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <a asp-page="/Marketplace/Details" asp-route-id="@listing.ListingId" class="btn btn-primary btn-sm flex-grow-1">
+                                <i class="bi bi-eye"></i> View Details
+                            </a>
+                            @if (listing.ListingType == "Sale" || listing.ListingType == "Both")
+                            {
+                                <a asp-page="/Marketplace/Details" asp-route-id="@listing.ListingId" asp-fragment="make-offer" class="btn btn-success btn-sm">
+                                    <i class="bi bi-cash"></i> Offer
+                                </a>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <i class="bi bi-calendar"></i> Listed @listing.ListedDate.ToLocalTime().ToString("MMM dd, yyyy")
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Styles {
+<style>
+    .listing-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .listing-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+}

@@ -1,0 +1,300 @@
+@page
+@model ArcaneVault.Web.Pages.Marketplace.MyListingsModel
+@{
+    ViewData["Title"] = "My Listings";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-ul"></i> My Marketplace Listings</h2>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create New Listing
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- My Listings Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-shop"></i> My Listings (@Model.Listings.Count)</h5>
+        </div>
+        <div class="card-body">
+            @if (!Model.Listings.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-3">You haven't created any listings yet.</p>
+                    <a asp-page="Create" class="btn btn-primary">Create Your First Listing</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                                <th>Views</th>
+                                <th>Offers</th>
+                                <th>Listed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var listing in Model.Listings)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-page="Details" asp-route-id="@listing.ListingId" class="text-decoration-none">
+                                            @listing.Title
+                                        </a>
+                                    </td>
+                                    <td>@listing.ItemName</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@listing.ListingType</span>
+                                    </td>
+                                    <td>
+                                        @if (listing.AskingPrice.HasValue)
+                                        {
+                                            <text>$@listing.AskingPrice.Value.ToString("N2")</text>
+                                        }
+                                        else
+                                        {
+                                            <text>-</text>
+                                        }
+                                    </td>
+                                    <td>@listing.QuantityAvailable</td>
+                                    <td>
+                                        @if (listing.Status == "Active")
+                                        {
+                                            <span class="badge bg-success">@listing.Status</span>
+                                        }
+                                        else if (listing.Status == "Sold")
+                                        {
+                                            <span class="badge bg-info">@listing.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@listing.Status</span>
+                                        }
+                                    </td>
+                                    <td>@listing.ViewCount</td>
+                                    <td>
+                                        @if (listing.PendingOffers > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">@listing.PendingOffers</span>
+                                        }
+                                        else
+                                        {
+                                            <text>0</text>
+                                        }
+                                    </td>
+                                    <td>@listing.ListedDate.ToString("MMM dd")</td>
+                                    <td>
+                                        @if (listing.Status == "Active")
+                                        {
+                                            <form method="post" asp-page-handler="CancelListing" class="d-inline">
+                                                <input type="hidden" name="listingId" value="@listing.ListingId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Are you sure you want to cancel this listing?');">
+                                                    <i class="bi bi-x-circle"></i> Cancel
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Received Offers Section -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-envelope-open"></i> Offers Received (@Model.ReceivedOffers.Count(o => o.Status == "Pending"))</h5>
+        </div>
+        <div class="card-body">
+            @if (!Model.ReceivedOffers.Any())
+            {
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem;"></i>
+                    <p class="mt-2">No offers received yet.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Listing</th>
+                                <th>Buyer</th>
+                                <th>Type</th>
+                                <th>Offered Price</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var offer in Model.ReceivedOffers.OrderByDescending(o => o.OfferedDate))
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-page="Details" asp-route-id="@offer.ListingId" class="text-decoration-none">
+                                            @offer.ListingTitle
+                                        </a>
+                                    </td>
+                                    <td>@offer.BuyerUserName</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@offer.OfferType</span>
+                                    </td>
+                                    <td>
+                                        @if (offer.OfferedPrice.HasValue)
+                                        {
+                                            <text>$@offer.OfferedPrice.Value.ToString("N2")</text>
+                                        }
+                                        else
+                                        {
+                                            <text>-</text>
+                                        }
+                                    </td>
+                                    <td>@offer.QuantityRequested</td>
+                                    <td>
+                                        @if (offer.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark">@offer.Status</span>
+                                        }
+                                        else if (offer.Status == "Accepted")
+                                        {
+                                            <span class="badge bg-success">@offer.Status</span>
+                                        }
+                                        else if (offer.Status == "Rejected")
+                                        {
+                                            <span class="badge bg-danger">@offer.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@offer.Status</span>
+                                        }
+                                    </td>
+                                    <td>@offer.OfferedDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(offer.Message))
+                                        {
+                                            <span class="text-truncate d-inline-block" style="max-width: 150px;" 
+                                                  title="@offer.Message">
+                                                @offer.Message
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <text>-</text>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (offer.Status == "Pending")
+                                        {
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-success" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#acceptModal@(offer.OfferId)">
+                                                    <i class="bi bi-check-circle"></i> Accept
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#rejectModal@(offer.OfferId)">
+                                                    <i class="bi bi-x-circle"></i> Reject
+                                                </button>
+                                            </div>
+
+                                            <!-- Accept Modal -->
+                                            <div class="modal fade" id="acceptModal@(offer.OfferId)" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Accept Offer</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form method="post" asp-page-handler="AcceptOffer">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="offerId" value="@offer.OfferId" />
+                                                                <p>Are you sure you want to accept this offer from <strong>@offer.BuyerUserName</strong>?</p>
+                                                                <p>The item will be transferred to the buyer.</p>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label">Response Message (optional)</label>
+                                                                    <textarea name="response" class="form-control" rows="2" 
+                                                                              placeholder="Thank you! Enjoy your item!"></textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-success">Confirm Accept</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Reject Modal -->
+                                            <div class="modal fade" id="rejectModal@(offer.OfferId)" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Reject Offer</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form method="post" asp-page-handler="RejectOffer">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="offerId" value="@offer.OfferId" />
+                                                                <p>Are you sure you want to reject this offer from <strong>@offer.BuyerUserName</strong>?</p>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label">Response Message (optional)</label>
+                                                                    <textarea name="response" class="form-control" rows="2" 
+                                                                              placeholder="Sorry, I'm looking for a better offer."></textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-danger">Confirm Reject</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
