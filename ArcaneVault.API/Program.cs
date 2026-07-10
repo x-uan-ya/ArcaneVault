@@ -3,6 +3,7 @@
 using ArcaneVault.API.Data;
 using ArcaneVault.API.Middleware;
 using ArcaneVault.API.Services;
+using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -95,6 +96,20 @@ namespace ArcaneVault.API
             {
                 var db = scope.ServiceProvider.GetRequiredService<ArcaneVaultDbContext>();
                 db.Database.Migrate();
+
+                // Ensure admin account exists with correct password hash
+                var adminUser = db.Users.FirstOrDefault(u => u.UserName == "admin");
+                if (adminUser != null)
+                {
+                    // Generate a fresh BCrypt hash for "Admin@123"
+                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                    if (adminUser.PasswordHash != hashedPassword)
+                    {
+                        adminUser.PasswordHash = hashedPassword;
+                        db.Users.Update(adminUser);
+                        db.SaveChanges();
+                    }
+                }
             }
 
             // ========== MIDDLEWARE PIPELINE ==========

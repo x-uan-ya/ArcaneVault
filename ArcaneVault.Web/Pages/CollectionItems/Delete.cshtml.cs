@@ -39,6 +39,7 @@ namespace ArcaneVault.Web.Pages.CollectionItems
                 return RedirectToPage("/Account/Login");
 
             var client = _http.CreateClient("API");
+            client.SetAuthorizationToken(HttpContext.Session);
             await client.DeleteAsync($"api/collectionitems/{id}");
 
             TempData["Success"] = "Item removed from collection.";

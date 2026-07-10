@@ -39,6 +39,7 @@ namespace ArcaneVault.Web.Pages.Categories
                 return RedirectToPage("/Account/Login");
 
             var client = _http.CreateClient("API");
+            client.SetAuthorizationToken(HttpContext.Session);
             var response = await client.DeleteAsync($"api/categories/{Uri.EscapeDataString(code)}");
 
             TempData["Success"] = response.IsSuccessStatusCode

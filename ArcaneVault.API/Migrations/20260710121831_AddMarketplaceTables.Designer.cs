@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArcaneVault.API.Migrations
 {
     [DbContext(typeof(ArcaneVaultDbContext))]
-    [Migration("20260708051501_AddFixedDepositTables")]
-    partial class AddFixedDepositTables
+    [Migration("20260710121831_AddMarketplaceTables")]
+    partial class AddMarketplaceTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -143,7 +143,7 @@ namespace ArcaneVault.API.Migrations
                             UserName = "admin",
                             Email = "admin@arcanevault.com",
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$3QpoxpoCxm/OqrEjuFUxo.Y7TkNQ5rRbUFxLzFvWIIq0a5b5JKbFG",
+                            PasswordHash = "$2a$12$R9h/cIPz0gi.URNNV3kh2OPST9/PgBkqquzi.Ee4kGXpVuLxNs.lq",
                             RoleId = 2
                         });
                 });
@@ -254,6 +254,142 @@ namespace ArcaneVault.API.Migrations
                     b.ToTable("FixedDepositTransactions");
                 });
 
+            modelBuilder.Entity("ArcaneVault.API.Data.MarketplaceListing", b =>
+                {
+                    b.Property<int>("ListingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("AskingPrice")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ListedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ListingType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("QuantityAvailable")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SellerUserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TradePreferences")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ListingId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("MarketplaceListings");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.Offer", b =>
+                {
+                    b.Property<int>("OfferId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BuyerUserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ListingId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OfferType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OfferedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("OfferedPrice")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int?>("ParentOfferId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("QuantityRequested")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ResponseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerResponse")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TradeItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("OfferId");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("ParentOfferId");
+
+                    b.HasIndex("TradeItemId");
+
+                    b.ToTable("Offers");
+                });
+
             modelBuilder.Entity("ArcaneVault.API.Data.ArcaneVaultCollectionItemCategories", b =>
                 {
                     b.HasOne("ArcaneVault.API.Data.ArcaneVaultCategories", "Category")
@@ -317,6 +453,42 @@ namespace ArcaneVault.API.Migrations
                     b.Navigation("FDAccount");
                 });
 
+            modelBuilder.Entity("ArcaneVault.API.Data.MarketplaceListing", b =>
+                {
+                    b.HasOne("ArcaneVault.API.Data.ArcaneVaultCollectionItems", "CollectionItem")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CollectionItem");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.Offer", b =>
+                {
+                    b.HasOne("ArcaneVault.API.Data.MarketplaceListing", "Listing")
+                        .WithMany("Offers")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArcaneVault.API.Data.Offer", "OriginalOffer")
+                        .WithMany("CounterOffers")
+                        .HasForeignKey("ParentOfferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ArcaneVault.API.Data.ArcaneVaultCollectionItems", "TradeItem")
+                        .WithMany()
+                        .HasForeignKey("TradeItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("OriginalOffer");
+
+                    b.Navigation("TradeItem");
+                });
+
             modelBuilder.Entity("ArcaneVault.API.Data.ArcaneVaultCategories", b =>
                 {
                     b.Navigation("CollectionItemCategories");
@@ -340,6 +512,16 @@ namespace ArcaneVault.API.Migrations
             modelBuilder.Entity("ArcaneVault.API.Data.FixedDepositAccounts", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.MarketplaceListing", b =>
+                {
+                    b.Navigation("Offers");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.Offer", b =>
+                {
+                    b.Navigation("CounterOffers");
                 });
 #pragma warning restore 612, 618
         }

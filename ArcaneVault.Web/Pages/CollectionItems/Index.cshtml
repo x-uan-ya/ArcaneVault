@@ -48,10 +48,10 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in Model.Items)
+            @foreach (var (item, index) in Model.Items.Select((i, idx) => (i, idx)))
             {
                 <tr>
-                    <td>@item.ItemId</td>
+                    <td>@(index + 1)</td>
                     <td>@item.ItemName</td>
                     <td>
                         @if (item.Categories.Any())

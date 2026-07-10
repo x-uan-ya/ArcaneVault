@@ -42,6 +42,7 @@ namespace ArcaneVault.Web.Pages.CollectionItems
             }
 
             var client = _http.CreateClient("API");
+            client.SetAuthorizationToken(HttpContext.Session);
 
             var body = new StringContent(
                 JsonSerializer.Serialize(new

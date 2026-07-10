@@ -54,6 +54,7 @@ namespace ArcaneVault.Web.Pages.Categories
             if (!ModelState.IsValid) return Page();
 
             var client = _http.CreateClient("API");
+            client.SetAuthorizationToken(HttpContext.Session);
 
             var body = new StringContent(
                 JsonSerializer.Serialize(new { categoryName = Input.CategoryName }),

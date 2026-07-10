@@ -16,6 +16,8 @@ namespace ArcaneVault.API.Data
         public DbSet<ArcaneVaultCollectionItemCategories> CollectionItemCategories { get; set; }
         public DbSet<FixedDepositAccounts> FixedDepositAccounts { get; set; }
         public DbSet<FixedDepositTransactions> FixedDepositTransactions { get; set; }
+        public DbSet<MarketplaceListing> MarketplaceListings { get; set; }
+        public DbSet<Offer> Offers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -49,6 +51,34 @@ namespace ArcaneVault.API.Data
                 .HasForeignKey(t => t.FDAccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // MarketplaceListing -> CollectionItem
+            modelBuilder.Entity<MarketplaceListing>()
+                .HasOne(m => m.CollectionItem)
+                .WithMany()
+                .HasForeignKey(m => m.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Offer -> MarketplaceListing
+            modelBuilder.Entity<Offer>()
+                .HasOne(o => o.Listing)
+                .WithMany(m => m.Offers)
+                .HasForeignKey(o => o.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Offer -> TradeItem (optional)
+            modelBuilder.Entity<Offer>()
+                .HasOne(o => o.TradeItem)
+                .WithMany()
+                .HasForeignKey(o => o.TradeItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Offer -> ParentOffer (for counter-offers)
+            modelBuilder.Entity<Offer>()
+                .HasOne(o => o.OriginalOffer)
+                .WithMany(o => o.CounterOffers)
+                .HasForeignKey(o => o.ParentOfferId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Seed roles
             modelBuilder.Entity<ArcaneVaultRoles>().HasData(
                 new ArcaneVaultRoles { RoleId = 1, RoleName = "User" },
@@ -62,8 +92,8 @@ namespace ArcaneVault.API.Data
                 {
                     UserName = "admin",
                     Email = "admin@arcanevault.com",
-                    // BCrypt hash of "Admin@123" - regenerated fresh
-                    PasswordHash = "$2a$11$slYQmyNdGzirKEj7V5s1KODkT7XB8mHnHpF9X5K8vKJ5mK9B2Z7jW",
+                    // BCrypt hash of "Admin@123"
+                    PasswordHash = "$2a$12$R9h/cIPz0gi.URNNV3kh2OPST9/PgBkqquzi.Ee4kGXpVuLxNs.lq",
                     IsDeleted = false,
                     RoleId = 2
                 }
