@@ -94,7 +94,7 @@ namespace ArcaneVault.API.Controllers
                     user?.Email,
                     user?.RoleId,
                     RoleName = user?.Role?.RoleName,
-                    token
+                    Token = token  // Capitalized to match LoginResponse in web
                 });
             }
             catch (Exception ex)

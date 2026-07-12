@@ -60,6 +60,10 @@ namespace ArcaneVault.Web.Pages.Marketplace
             if (!SessionHelper.IsLoggedIn(HttpContext.Session))
                 return RedirectToPage("/Account/Login");
 
+            var token = SessionHelper.GetJwtToken(HttpContext.Session);
+            var username = SessionHelper.GetUserName(HttpContext.Session);
+            _logger.LogInformation($"Creating listing for user: {username}, Has Token: {!string.IsNullOrEmpty(token)}");
+
             await LoadUserItemsAsync();
 
             // Validation
@@ -131,8 +135,9 @@ namespace ArcaneVault.Web.Pages.Marketplace
                     }
                     catch
                     {
-                        ErrorMessage = $"Failed to create listing: {response.StatusCode}";
+                        ErrorMessage = $"Failed to create listing: {response.StatusCode}. Details: {errorContent}";
                     }
+                    _logger.LogError($"Failed to create listing. Status: {response.StatusCode}, Content: {errorContent}");
                 }
             }
             catch (Exception ex)
@@ -152,7 +157,12 @@ namespace ArcaneVault.Web.Pages.Marketplace
                 client.SetAuthorizationToken(HttpContext.Session);
 
                 var username = SessionHelper.GetUserName(HttpContext.Session);
-                var response = await client.GetAsync($"api/collectionitems?user={username}");
+                var token = SessionHelper.GetJwtToken(HttpContext.Session);
+                
+                _logger.LogInformation($"Loading items for user: {username}, Has Token: {!string.IsNullOrEmpty(token)}");
+
+                // Don't pass username - API will automatically filter by authenticated user
+                var response = await client.GetAsync($"api/collectionitems");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -162,6 +172,10 @@ namespace ArcaneVault.Web.Pages.Marketplace
 
                     // Filter items that have available quantity and aren't already listed
                     MyItems = items.Where(i => i.CurrentQuantity > 0).ToList();
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to load items. Status: {response.StatusCode}");
                 }
             }
             catch (Exception ex)

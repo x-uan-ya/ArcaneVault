@@ -23,19 +23,37 @@ namespace ArcaneVault.API.Controllers
         // GET api/collectionitems?username=xxx&search=yyy
         // Returns all non-deleted items, optionally filtered by user and search term
         // Public endpoint (returns all items to all users)
+        /// <summary>
+        /// GET /api/collectionitems - Get collection items
+        /// Requires authentication. Users can only see their own items unless they are Staff.
+        /// </summary>
+        [Authorize]
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? username, [FromQuery] string? search)
+        public async Task<IActionResult> GetAll([FromQuery] string? user, [FromQuery] string? search)
         {
             try
             {
+                var currentUser = User.Identity?.Name;
+                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+                if (string.IsNullOrEmpty(currentUser))
+                    return Unauthorized();
+
                 var query = _db.CollectionItems
                     .Include(i => i.CollectionItemCategories!)
                         .ThenInclude(c => c.Category)
                     .Where(i => !i.IsDeleted);
 
-                // Filter by user if provided
-                if (!string.IsNullOrWhiteSpace(username))
-                    query = query.Where(i => i.UserName == username);
+                // Staff can see all items, regular users can only see their own
+                if (userRole != "Staff")
+                {
+                    query = query.Where(i => i.UserName == currentUser);
+                }
+                else if (!string.IsNullOrWhiteSpace(user))
+                {
+                    // Staff can filter by username
+                    query = query.Where(i => i.UserName == user);
+                }
 
                 // Search across ItemName, CategoryName, and username
                 if (!string.IsNullOrWhiteSpace(search))
