@@ -63,7 +63,8 @@ namespace ArcaneVault.Web.Pages.CollectionItems
                 return RedirectToPage("Index");
             }
 
-            ErrorMessage = "Failed to add item.";
+            var errorContent = await response.Content.ReadAsStringAsync();
+            ErrorMessage = $"Failed to add item. Status: {response.StatusCode}. Details: {errorContent}";
             await LoadCategoriesAsync();
             return Page();
         }
