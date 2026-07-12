@@ -24,17 +24,16 @@ namespace ArcaneVault.Web.Pages.CollectionItems
                 return RedirectToPage("/Account/Login");
 
             var client = _http.CreateClient("API");
+            client.SetAuthorizationToken(HttpContext.Session); // Add JWT token
+            
             string userName = SessionHelper.GetUserName(HttpContext.Session)!;
 
-            // Staff see all items; Users see only their own
-            string url = SessionHelper.IsStaff(HttpContext.Session)
-                ? "api/collectionitems"
-                : $"api/collectionitems?username={Uri.EscapeDataString(userName)}";
+            // Since API now automatically filters by authenticated user, just call the endpoint
+            string url = "api/collectionitems";
 
             // Append search term if provided
             if (!string.IsNullOrWhiteSpace(Search))
-                url += (url.Contains('?') ? "&" : "?") +
-                       $"search={Uri.EscapeDataString(Search)}";
+                url += $"?search={Uri.EscapeDataString(Search)}";
 
             var response = await client.GetAsync(url);
 
