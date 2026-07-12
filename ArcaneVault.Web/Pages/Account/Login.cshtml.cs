@@ -61,12 +61,19 @@ namespace ArcaneVault.Web.Pages.Account
             if (response.IsSuccessStatusCode)
             {
                 string raw = await response.Content.ReadAsStringAsync();
+                
+                // Log the raw response to see what we're getting
+                Console.WriteLine($"Login response: {raw}");
+                
                 var user = JsonSerializer.Deserialize<LoginResponse>(raw,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (user != null)
+                {
+                    Console.WriteLine($"Token present: {!string.IsNullOrEmpty(user.Token)}, Token length: {user.Token?.Length ?? 0}");
                     SessionHelper.SetUser(HttpContext.Session,
                         user.UserName, user.Email, user.RoleId, user.RoleName, user.Token);
+                }
 
                 // Redirect to home page after successful login.
                 return RedirectToPage("/Index");

@@ -173,7 +173,8 @@ namespace ArcaneVault.API.Services
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.UserName),
+                new Claim(ClaimTypes.Name, user.UserName),           // This sets User.Identity.Name
+                new Claim(ClaimTypes.NameIdentifier, user.UserName), // Keep this for compatibility
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role?.RoleName ?? "User")
             };
