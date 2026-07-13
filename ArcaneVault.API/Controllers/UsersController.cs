@@ -157,6 +157,47 @@ namespace ArcaneVault.API.Controllers
             }
         }
 
+        // PUT api/users/me/password
+        // Changes the currently authenticated user's password
+        [Authorize]
+        [HttpPut("me/password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized();
+
+                var user = await _db.Users
+                    .FirstOrDefaultAsync(u => u.UserName == username && !u.IsDeleted);
+
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+
+                // Verify current password
+                if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+                    return BadRequest(new { message = "Current password is incorrect." });
+
+                // Hash and save new password
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation($"Password changed for user '{username}'.");
+
+                return Ok(new { message = "Password changed successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error changing password: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred changing your password." });
+            }
+        }
+
         // DELETE api/users/me
         // Soft-deletes the currently authenticated user's account
         [Authorize]
@@ -218,5 +259,17 @@ namespace ArcaneVault.API.Controllers
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required.")]
         public string Password { get; set; } = string.Empty;
+    }
+
+    // DTO: Change Password
+    public class ChangePasswordRequest
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Current password is required.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "New password is required.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 6,
+            ErrorMessage = "New password must be at least 6 characters.")]
+        public string NewPassword { get; set; } = string.Empty;
     }
 }
