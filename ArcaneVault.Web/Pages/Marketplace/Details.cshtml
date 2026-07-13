@@ -101,8 +101,10 @@ else
 
                     @if (!string.IsNullOrWhiteSpace(Model.Listing.TradePreferences))
                     {
-                        <h5>Trade Preferences</h5>
-                        <p class="text-muted">@Model.Listing.TradePreferences</p>
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-arrow-left-right"></i> Trade Required</h6>
+                            <p class="mb-0"><strong>Seller wants:</strong> @Model.Listing.TradePreferences</p>
+                        </div>
                     }
 
                     <hr>
@@ -156,55 +158,72 @@ else
                 }
                 else if (Model.Listing.Status == "Active")
                 {
-                    <div class="card mb-3" id="make-offer">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Make an Offer</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="post">
-                                <div class="mb-3">
-                                    <label class="form-label">Offer Type</label>
-                                    <select asp-for="OfferType" class="form-select" required>
-                                        @if (Model.Listing.ListingType == "Sale" || Model.Listing.ListingType == "Both")
-                                        {
-                                            <option value="Purchase">Purchase Offer</option>
-                                        }
-                                        @if (Model.Listing.ListingType == "Trade" || Model.Listing.ListingType == "Both")
-                                        {
-                                            <option value="Trade">Trade Offer</option>
-                                        }
-                                    </select>
+                    @if (Model.Listing.ListingType == "Trade")
+                    {
+                        <!-- Trade Listing: Simple Trade Button -->
+                        <div class="card mb-3 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Trade</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <strong>Seller wants:</strong> @Model.Listing.TradePreferences
                                 </div>
-
-                                <div class="mb-3" id="priceField">
-                                    <label class="form-label">Your Offer Price</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input asp-for="OfferedPrice" type="number" class="form-control" min="0.01" step="0.01" placeholder="@Model.Listing.AskingPrice">
+                                <form method="post" asp-page-handler="Trade">
+                                    <input type="hidden" name="id" value="@Model.Listing.ListingId" />
+                                    <input type="hidden" name="quantityRequested" value="1" />
+                                    
+                                    <button type="submit" class="btn btn-success btn-lg w-100">
+                                        <i class="bi bi-arrow-left-right"></i> Trade Now
+                                    </button>
+                                    <small class="text-muted d-block mt-2 text-center">
+                                        This will swap your @Model.Listing.TradePreferences for @Model.Listing.Item.ItemName
+                                    </small>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Sale Listing: Purchase Offer Form -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Make an Offer</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="post">
+                                    <div class="mb-3">
+                                        <label class="form-label">Your Offer Price</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input asp-for="OfferedPrice" type="number" class="form-control" min="0.01" step="0.01" placeholder="@Model.Listing.AskingPrice" required>
+                                        </div>
+                                        @if (Model.Listing.AskingPrice.HasValue)
+                                        {
+                                            <small class="text-muted">Asking price: $@Model.Listing.AskingPrice.Value.ToString("N2")</small>
+                                        }
                                     </div>
-                                    @if (Model.Listing.AskingPrice.HasValue)
-                                    {
-                                        <small class="text-muted">Asking price: $@Model.Listing.AskingPrice.Value.ToString("N2")</small>
-                                    }
-                                </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Quantity</label>
-                                    <input asp-for="QuantityRequested" type="number" class="form-control" min="1" max="@Model.Listing.QuantityAvailable" value="1" required>
-                                    <small class="text-muted">Available: @Model.Listing.QuantityAvailable</small>
-                                </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Quantity</label>
+                                        <input asp-for="QuantityRequested" type="number" class="form-control" min="1" max="@Model.Listing.QuantityAvailable" value="1" required>
+                                        <small class="text-muted">Available: @Model.Listing.QuantityAvailable</small>
+                                    </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Message (optional)</label>
-                                    <textarea asp-for="Message" class="form-control" rows="3" placeholder="Add a message to the seller..."></textarea>
-                                </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Message (optional)</label>
+                                        <textarea asp-for="Message" class="form-control" rows="3" maxlength="500"></textarea>
+                                    </div>
 
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="bi bi-send"></i> Submit Offer
-                                </button>
-                            </form>
+                                    <input type="hidden" asp-for="OfferType" value="Purchase" />
+
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-send"></i> Submit Offer
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
+                    }
                 }
                 else
                 {

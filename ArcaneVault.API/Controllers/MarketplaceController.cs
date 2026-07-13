@@ -357,6 +357,25 @@ namespace ArcaneVault.API.Controllers
                 if (request.QuantityRequested > listing.QuantityAvailable)
                     return BadRequest(new { message = "Requested quantity exceeds available quantity." });
 
+                // If trade listing, verify buyer has the required item (case insensitive)
+                if ((listing.ListingType == "Trade" || listing.ListingType == "Both") && 
+                    !string.IsNullOrWhiteSpace(listing.TradePreferences))
+                {
+                    var requiredItemName = listing.TradePreferences.Trim();
+                    
+                    // Check if buyer owns an item with this name (case insensitive)
+                    var buyerHasItem = await _db.CollectionItems
+                        .AnyAsync(i => i.UserName == username && 
+                                      i.ItemName.ToLower() == requiredItemName.ToLower() &&
+                                      i.CurrentQuantity > 0 &&
+                                      !i.IsDeleted);
+
+                    if (!buyerHasItem && request.OfferType == "Trade")
+                    {
+                        return BadRequest(new { message = $"You do not have the item '{requiredItemName}' required for this trade." });
+                    }
+                }
+
                 // If trade offer, verify trade item exists and belongs to user
                 if (request.OfferType == "Trade" && request.TradeItemId.HasValue)
                 {
@@ -594,6 +613,13 @@ namespace ArcaneVault.API.Controllers
 
                 // Reduce seller's quantity
                 item.CurrentQuantity -= offer.QuantityRequested;
+
+                // If seller has no more of this item, mark as deleted (remove from collection)
+                if (item.CurrentQuantity <= 0)
+                {
+                    item.IsDeleted = true;
+                    _logger.LogInformation($"Item {item.ItemId} removed from seller's collection (quantity reached 0).");
+                }
 
                 // Update offer status
                 offer.Status = "Accepted";

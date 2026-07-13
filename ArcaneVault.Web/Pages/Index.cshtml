@@ -17,10 +17,10 @@
     else
     {
         <a asp-page="/CollectionItems/Index" class="btn btn-success btn-lg me-2">View My Collection</a>
+        <a asp-page="/Marketplace/Index" class="btn btn-primary btn-lg me-2">Browse Marketplace</a>
         @if (HttpContext.Session.GetString("RoleName") == "Staff")
         {
-            <a asp-page="/Categories/Index" class="btn btn-info btn-lg me-2">Manage Categories</a>
-            <a asp-page="/Analytics/Index" class="btn btn-dark btn-lg">📊 Analytics</a>
+            <a asp-page="/Categories/Index" class="btn btn-info btn-lg">Manage Categories</a>
         }
     }
 </div>
@@ -45,8 +45,8 @@
     <div class="col-md-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <h3>📊 Insights</h3>
-                <p class="text-muted">Staff can view platform-wide analytics and trends.</p>
+                <h3>🛒 Marketplace</h3>
+                <p class="text-muted">Buy, sell, and trade collectibles with other users.</p>
             </div>
         </div>
     </div>

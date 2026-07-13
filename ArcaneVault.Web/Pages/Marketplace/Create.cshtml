@@ -74,9 +74,10 @@
                             </div>
 
                             <div class="mb-3" id="tradeField" style="display: none;">
-                                <label asp-for="TradePreferences" class="form-label">Trade Preferences <span class="text-danger">*</span></label>
-                                <textarea asp-for="TradePreferences" class="form-control" rows="3" maxlength="500"
-                                          placeholder="e.g., Looking for vintage comics, rare figurines, or gaming cards"></textarea>
+                                <label asp-for="TradePreferences" class="form-label">Item You Want in Trade <span class="text-danger">*</span></label>
+                                <input asp-for="TradePreferences" class="form-control" maxlength="200"
+                                          placeholder="e.g., Pikachu" />
+                                <small class="text-muted">Enter the exact item name you want to receive in trade (not case sensitive)</small>
                             </div>
 
                             <div class="mb-3">
@@ -119,16 +120,19 @@
                 priceField.style.display = 'block';
                 tradeField.style.display = 'none';
                 priceInput.required = true;
+                const tradeInput = tradeField.querySelector('input');
                 tradeInput.required = false;
             } else if (this.value === 'Trade') {
                 priceField.style.display = 'none';
                 tradeField.style.display = 'block';
                 priceInput.required = false;
+                const tradeInput = tradeField.querySelector('input');
                 tradeInput.required = true;
             } else { // Both
                 priceField.style.display = 'block';
                 tradeField.style.display = 'block';
                 priceInput.required = true;
+                const tradeInput = tradeField.querySelector('input');
                 tradeInput.required = true;
             }
         });

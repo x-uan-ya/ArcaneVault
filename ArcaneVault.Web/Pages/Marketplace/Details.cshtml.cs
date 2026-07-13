@@ -41,6 +41,74 @@ namespace ArcaneVault.Web.Pages.Marketplace
             return Page();
         }
 
+        public async Task<IActionResult> OnPostTradeAsync(int id, int quantityRequested = 1)
+        {
+            if (!SessionHelper.IsLoggedIn(HttpContext.Session))
+                return RedirectToPage("/Account/Login");
+
+            await LoadListingAsync(id);
+
+            if (Listing == null)
+            {
+                ErrorMessage = "Listing not found.";
+                return Page();
+            }
+
+            // Verify it's a trade listing
+            if (Listing.ListingType != "Trade")
+            {
+                ErrorMessage = "This is not a trade listing.";
+                return Page();
+            }
+
+            try
+            {
+                var client = _http.CreateClient("API");
+                client.SetAuthorizationToken(HttpContext.Session);
+
+                // Simple trade offer with just quantity
+                var offerData = new
+                {
+                    offerType = "Trade",
+                    offeredPrice = (decimal?)null,
+                    tradeItemId = (int?)null,
+                    quantityRequested = quantityRequested,
+                    message = "Direct trade"
+                };
+
+                var json = JsonSerializer.Serialize(offerData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync($"api/marketplace/{id}/offers", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    SuccessMessage = "Trade offer submitted successfully! The seller will review your offer.";
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var errorObj = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        ErrorMessage = errorObj?.Message ?? "Failed to submit trade.";
+                    }
+                    catch
+                    {
+                        ErrorMessage = $"Failed to submit trade: {response.StatusCode}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error submitting trade: {ex.Message}");
+                ErrorMessage = "An error occurred submitting your trade.";
+            }
+
+            return Page();
+        }
+
         public async Task<IActionResult> OnPostAsync(int id)
         {
             if (!SessionHelper.IsLoggedIn(HttpContext.Session))
