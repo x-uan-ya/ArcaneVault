@@ -1,0 +1,13 @@
+﻿{
+  "Information": [
+    "This file saves deployment settings for the AWS Lambda .NET tooling."
+  ],
+  "profile": "default",
+  "region": "us-east-1",
+  "configuration": "Release",
+  "framework": "net10.0",
+  "function-runtime": "dotnet10",
+  "function-architecture": "arm64",
+  "function-name": "ArcaneVault",
+  "function-handler": "ArcaneVault.Web"
+}

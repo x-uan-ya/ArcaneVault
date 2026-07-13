@@ -1,4 +1,5 @@
 // Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04
+using Amazon.Lambda.AspNetCoreServer;
 
 namespace ArcaneVault.Web
 {
@@ -8,6 +9,11 @@ namespace ArcaneVault.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Add this line right below your builder initialization:
+            builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
+
+            // The rest of your standard configuration remains the same:
+            builder.Services.AddControllers();
             // Razor Pages
             builder.Services.AddRazorPages();
 
