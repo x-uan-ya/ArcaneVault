@@ -106,6 +106,52 @@ namespace ArcaneVault.Web.Pages.Marketplace
             return Page();
         }
 
+        public async Task<IActionResult> OnPostAddToWishlistAsync(int id, int itemId)
+        {
+            if (!SessionHelper.IsLoggedIn(HttpContext.Session))
+                return RedirectToPage("/Account/Login");
+
+            try
+            {
+                var client = _http.CreateClient("API");
+                client.SetAuthorizationToken(HttpContext.Session);
+
+                var wishlistData = new { itemId = itemId };
+                var json = JsonSerializer.Serialize(wishlistData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync("api/wishlist", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "Item added to your wishlist!";
+                    return RedirectToPage("/Wishlist/Index");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var errorObj = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        ErrorMessage = errorObj?.Message ?? "Failed to add to wishlist.";
+                    }
+                    catch
+                    {
+                        ErrorMessage = $"Failed to add to wishlist: {response.StatusCode}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error adding to wishlist: {ex.Message}");
+                ErrorMessage = "An error occurred adding to wishlist.";
+            }
+
+            await LoadListingAsync(id);
+            return Page();
+        }
+
         private async Task LoadListingAsync(int id)
         {
             try

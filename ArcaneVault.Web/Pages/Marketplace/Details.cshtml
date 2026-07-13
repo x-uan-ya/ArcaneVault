@@ -32,12 +32,21 @@ else
                                 <i class="bi bi-box"></i> Item: @Model.Listing.Item.ItemName
                             </p>
                         </div>
-                        @if (Model.Listing.IsFeatured)
-                        {
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill"></i> Featured
-                            </span>
-                        }
+                        <div>
+                            @if (Model.Listing.IsFeatured)
+                            {
+                                <span class="badge bg-warning text-dark me-2">
+                                    <i class="bi bi-star-fill"></i> Featured
+                                </span>
+                            }
+                            <form method="post" asp-page-handler="AddToWishlist" class="d-inline">
+                                <input type="hidden" name="id" value="@Model.Listing.ListingId" />
+                                <input type="hidden" name="itemId" value="@Model.Listing.ItemId" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Add to Wishlist">
+                                    <i class="bi bi-heart"></i> Wishlist
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     @if (Model.Listing.Item.Categories != null && Model.Listing.Item.Categories.Any())

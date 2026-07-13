@@ -1,0 +1,127 @@
+@page
+@model ArcaneVault.Web.Pages.Wishlist.IndexModel
+@{
+    ViewData["Title"] = "My Wishlist";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-heart-fill text-danger"></i> My Wishlist</h2>
+        <a asp-page="/Marketplace/Index" class="btn btn-primary">
+            <i class="bi bi-search"></i> Browse Marketplace
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.WishlistItems.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-heart" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">Your Wishlist is Empty</h4>
+                <p class="text-muted">Browse the marketplace and add items you'd like to collect!</p>
+                <a asp-page="/Marketplace/Index" class="btn btn-primary mt-2">
+                    <i class="bi bi-shop"></i> Browse Marketplace
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var item in Model.WishlistItems)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm @(item.IsAvailableNow ? "border-success" : "")">
+                        @if (item.IsAvailableNow)
+                        {
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-check-circle-fill"></i> <strong>Available Now!</strong>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-heart-fill text-danger"></i> @item.ItemName
+                            </h5>
+
+                            @if (item.Categories != null && item.Categories.Any())
+                            {
+                                <div class="mb-2">
+                                    @foreach (var cat in item.Categories)
+                                    {
+                                        <span class="badge bg-secondary me-1">@cat.CategoryName</span>
+                                    }
+                                </div>
+                            }
+
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-calendar"></i> Added: @item.CreatedDate.ToString("MMM dd, yyyy")
+                            </p>
+
+                            @if (item.IsAvailableNow)
+                            {
+                                <div class="alert alert-success mb-2">
+                                    <strong>Price:</strong> $@item.AvailablePrice?.ToString("N2")<br />
+                                    <strong>Seller:</strong> @item.AvailableSeller
+                                </div>
+                                <a asp-page="/Marketplace/Details" asp-route-id="@item.AvailableListingId" 
+                                   class="btn btn-success w-100 mb-2">
+                                    <i class="bi bi-bag-check"></i> View Listing
+                                </a>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mb-2">
+                                    <i class="bi bi-hourglass-split"></i> Not currently available
+                                </div>
+                            }
+
+                            <form method="post" asp-page-handler="Remove" class="d-inline w-100">
+                                <input type="hidden" name="wishlistId" value="@item.WishlistId" />
+                                <button type="submit" class="btn btn-outline-danger w-100"
+                                        onclick="return confirm('Remove this item from your wishlist?');">
+                                    <i class="bi bi-trash"></i> Remove from Wishlist
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Summary Card -->
+        <div class="card mt-4 shadow-sm">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h3>@Model.WishlistItems.Count</h3>
+                        <p class="text-muted">Total Items</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-success">@Model.WishlistItems.Count(i => i.IsAvailableNow)</h3>
+                        <p class="text-muted">Available Now</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-warning">@Model.WishlistItems.Count(i => !i.IsAvailableNow)</h3>
+                        <p class="text-muted">Waiting</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

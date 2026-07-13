@@ -1,7 +1,6 @@
 // Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04
 
 using ArcaneVault.API.Data;
-using ArcaneVault.API.Middleware;
 using ArcaneVault.API.Services;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -113,8 +112,7 @@ namespace ArcaneVault.API
             }
 
             // ========== MIDDLEWARE PIPELINE ==========
-            // Global error handling middleware
-            app.UseMiddleware<ErrorHandlingMiddleware>();
+            // Global error handling middleware (removed)
 
             if (app.Environment.IsDevelopment())
             {

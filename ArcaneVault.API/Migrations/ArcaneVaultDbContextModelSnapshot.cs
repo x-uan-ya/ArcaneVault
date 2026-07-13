@@ -387,6 +387,35 @@ namespace ArcaneVault.API.Migrations
                     b.ToTable("Offers");
                 });
 
+            modelBuilder.Entity("ArcaneVault.API.Data.Wishlist", b =>
+                {
+                    b.Property<int>("WishlistId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("WishlistId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("UserName");
+
+                    b.ToTable("Wishlist");
+                });
+
             modelBuilder.Entity("ArcaneVault.API.Data.ArcaneVaultCollectionItemCategories", b =>
                 {
                     b.HasOne("ArcaneVault.API.Data.ArcaneVaultCategories", "Category")
@@ -484,6 +513,25 @@ namespace ArcaneVault.API.Migrations
                     b.Navigation("OriginalOffer");
 
                     b.Navigation("TradeItem");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.Wishlist", b =>
+                {
+                    b.HasOne("ArcaneVault.API.Data.ArcaneVaultCollectionItems", "CollectionItem")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArcaneVault.API.Data.ArcaneVaultUsers", "User")
+                        .WithMany()
+                        .HasForeignKey("UserName")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CollectionItem");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ArcaneVault.API.Data.ArcaneVaultCategories", b =>

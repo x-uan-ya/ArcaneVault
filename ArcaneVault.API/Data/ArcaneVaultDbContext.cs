@@ -18,6 +18,7 @@ namespace ArcaneVault.API.Data
         public DbSet<FixedDepositTransactions> FixedDepositTransactions { get; set; }
         public DbSet<MarketplaceListing> MarketplaceListings { get; set; }
         public DbSet<Offer> Offers { get; set; }
+        public DbSet<Wishlist> Wishlists { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
