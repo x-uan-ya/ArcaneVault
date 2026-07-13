@@ -83,14 +83,27 @@
                         }
                         else
                         {
-                            @* Logged in: show username and Logout *@
-                            <li class="nav-item">
-                                <span class="nav-link text-warning">
+                            @* Logged in: show username dropdown and Logout *@
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-warning" href="#" 
+                                   id="userDropdown" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
                                     👤 @loggedUser (@roleName)
-                                </span>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-white" asp-page="/Account/Logout">Logout</a>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><h6 class="dropdown-header">@loggedUser</h6></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-page="/Account/Logout">
+                                            <i class="bi bi-box-arrow-right"></i> Logout
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" asp-page="/Account/DeleteAccount">
+                                            <i class="bi bi-trash"></i> Delete Account
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         }
                     </ul>

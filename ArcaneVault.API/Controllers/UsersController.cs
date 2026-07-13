@@ -33,23 +33,46 @@ namespace ArcaneVault.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Duplicate email check (case-insensitive)
+                // Check if username is taken by an ACTIVE (non-deleted) account
+                bool userNameExists = await _db.Users
+                    .AnyAsync(u => u.UserName == request.UserName && !u.IsDeleted);
+                if (userNameExists)
+                    return Conflict(new { message = "This username is already taken. Please choose a different username." });
+
+                // Check if email is taken by an ACTIVE (non-deleted) account
                 bool emailExists = await _db.Users
                     .AnyAsync(u => u.Email.ToLower() == request.Email.ToLower() && !u.IsDeleted);
                 if (emailExists)
                     return Conflict(new { message = "An account with this email already exists." });
 
-                // Duplicate username check
-                bool userNameExists = await _db.Users.AnyAsync(u => u.UserName == request.UserName && !u.IsDeleted);
-                if (userNameExists)
-                    return Conflict(new { message = "This username is already taken." });
+                // If a deleted account exists with same username/email, reuse it
+                var deletedUser = await _db.Users
+                    .FirstOrDefaultAsync(u => 
+                        (u.UserName == request.UserName || u.Email.ToLower() == request.Email.ToLower()) 
+                        && u.IsDeleted);
 
+                if (deletedUser != null)
+                {
+                    // Reactivate the deleted account slot with new credentials
+                    deletedUser.UserName = request.UserName;
+                    deletedUser.Email = request.Email;
+                    deletedUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                    deletedUser.IsDeleted = false;
+                    deletedUser.RoleId = 1;
+                    await _db.SaveChangesAsync();
+
+                    _logger.LogInformation($"User '{request.UserName}' re-registered successfully.");
+                    return CreatedAtAction(nameof(GetByUsername), new { username = deletedUser.UserName },
+                        new { deletedUser.UserName, deletedUser.Email, deletedUser.RoleId });
+                }
+
+                // Create brand new account
                 var user = new ArcaneVaultUsers
                 {
                     UserName = request.UserName,
                     Email = request.Email,
                     IsDeleted = false,
-                    RoleId = 1, // Default role: User
+                    RoleId = 1,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
                 };
 
@@ -131,6 +154,40 @@ namespace ArcaneVault.API.Controllers
                 _logger.LogError($"Error retrieving user '{username}': {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "An error occurred retrieving user information." });
+            }
+        }
+
+        // DELETE api/users/me
+        // Soft-deletes the currently authenticated user's account
+        [Authorize]
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteMyAccount()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized();
+
+                var user = await _db.Users
+                    .FirstOrDefaultAsync(u => u.UserName == username && !u.IsDeleted);
+
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+
+                // Soft delete: mark as deleted instead of removing from DB
+                user.IsDeleted = true;
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation($"Account '{username}' deleted by user.");
+
+                return Ok(new { message = "Account deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error deleting account: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred deleting your account." });
             }
         }
     }

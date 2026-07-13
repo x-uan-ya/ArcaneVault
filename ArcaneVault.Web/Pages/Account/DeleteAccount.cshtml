@@ -1,0 +1,50 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model ArcaneVault.Web.Pages.Account.DeleteAccountModel
+@{
+    ViewData["Title"] = "Delete Account";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-danger shadow">
+                <div class="card-header bg-danger text-white text-center">
+                    <h4 class="mb-0">Delete Account</h4>
+                </div>
+                <div class="card-body text-center p-4">
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@Model.ErrorMessage</div>
+                    }
+
+                    <div class="mb-4">
+                        <p class="fs-5">Are you sure you want to delete your account?</p>
+                        <p class="text-muted">
+                            This will permanently delete <strong>@Model.UserName</strong>'s account.
+                            This action <strong>cannot be undone</strong>.
+                        </p>
+                        <ul class="text-start text-muted small">
+                            <li>Your collection items will be removed</li>
+                            <li>Your marketplace listings will be cancelled</li>
+                            <li>Your wishlist will be cleared</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                Yes, Delete My Account
+                            </button>
+                            <a asp-page="/Index" class="btn btn-outline-secondary btn-lg">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
