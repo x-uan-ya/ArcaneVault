@@ -95,6 +95,12 @@ namespace ArcaneVault.API.Data
         /// </summary>
         public DateTime? ExpirationDate { get; set; }
 
+        /// <summary>
+        /// When the seller accepted and the buyer must complete payment by.
+        /// Set when status transitions to "AwaitingPayment". Null otherwise.
+        /// </summary>
+        public DateTime? PaymentDeadline { get; set; }
+
         public bool IsDeleted { get; set; } = false;
 
         // Navigation properties

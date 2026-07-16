@@ -2,7 +2,6 @@
 
 using ArcaneVault.API.Data;
 using ArcaneVault.API.Services;
-using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,9 +16,21 @@ namespace ArcaneVault.API
             var builder = WebApplication.CreateBuilder(args);
 
             // ========== DATABASE CONFIGURATION ==========
-            // EF Core with SQLite
+            // EF Core with SQLite — use an absolute path so it works on AWS too
+            var dbPath = builder.Configuration.GetConnectionString("DefaultConnection")
+                         ?? "Data Source=ArcaneVault.db";
+            // If the connection string is a relative filename, anchor it to a writable folder
+            if (dbPath.StartsWith("Data Source=") && !dbPath.Contains('/') && !dbPath.Contains('\\'))
+            {
+                var folder = builder.Environment.IsDevelopment()
+                    ? builder.Environment.ContentRootPath
+                    : Path.Combine(Path.GetTempPath(), "ArcaneVault");
+                Directory.CreateDirectory(folder);
+                dbPath = $"Data Source={Path.Combine(folder, "ArcaneVault.db")}";
+            }
+
             builder.Services.AddDbContext<ArcaneVaultDbContext>(options =>
-                options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlite(dbPath));
 
             // ========== AUTHENTICATION & AUTHORIZATION ==========
             // JWT Configuration
@@ -61,30 +72,19 @@ namespace ArcaneVault.API
 
             // ========== CORS CONFIGURATION ==========
             // Allow the Razor Pages web app to call this API
+            // Origins are read from config so they can be set per-environment
+            var allowedOrigins = builder.Configuration
+                .GetSection("AllowedOrigins")
+                .Get<string[]>()
+                ?? new[] { "https://localhost:7088", "http://localhost:5245" };
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowWeb", policy =>
-                    policy.WithOrigins("https://localhost:7088", "http://localhost:5245")
+                    policy.WithOrigins(allowedOrigins)
                           .AllowAnyMethod()
                           .AllowAnyHeader()
                           .AllowCredentials());
-            });
-
-            // ========== LOGGING CONFIGURATION ==========
-            builder.Services.AddLogging(options =>
-            {
-                options.ClearProviders();
-                options.AddConsole();
-                options.AddDebug();
-                options.SetMinimumLevel(LogLevel.Information);
-            });
-
-            // ========== HTTP CLIENT CONFIGURATION ==========
-            builder.Services.AddHttpClient();
-            // Global HTTP client timeout configuration
-            builder.Services.Configure<SocketsHttpHandler>(handler =>
-            {
-                handler.ConnectTimeout = TimeSpan.FromSeconds(30);
             });
 
             var app = builder.Build();
@@ -112,21 +112,23 @@ namespace ArcaneVault.API
             }
 
             // ========== MIDDLEWARE PIPELINE ==========
-            // Global error handling middleware (removed)
 
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
             }
 
-            app.UseHttpsRedirection();
+            // Only redirect to HTTPS in development — on AWS the load balancer handles SSL termination
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
+
             app.UseCors("AllowWeb");
 
             // Authentication & Authorization middleware
             app.UseAuthentication();
             app.UseAuthorization();
-            app.MapGet("/", () => Results.Ok("ArcaneVault API is running")).WithName("Root").WithOpenApi();
-
             app.MapControllers();
             app.Run();
         }

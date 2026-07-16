@@ -19,6 +19,7 @@ namespace ArcaneVault.API.Data
         public DbSet<MarketplaceListing> MarketplaceListings { get; set; }
         public DbSet<Offer> Offers { get; set; }
         public DbSet<Wishlist> Wishlists { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -99,6 +100,13 @@ namespace ArcaneVault.API.Data
                     RoleId = 2
                 }
             );
+
+            // WalletTransaction -> Users
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserName)
+                .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
         }

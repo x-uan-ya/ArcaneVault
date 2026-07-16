@@ -22,15 +22,19 @@ namespace ArcaneVault.Web.Pages.Marketplace
         public List<OfferDto> ReceivedOffers { get; set; } = new();
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
+        public string? ProcessingMessage { get; set; }
+        public int? AwaitingPaymentOfferId { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
             if (!SessionHelper.IsLoggedIn(HttpContext.Session))
                 return RedirectToPage("/Account/Login");
 
-            // Check for success message from TempData
             if (TempData["SuccessMessage"] != null)
                 SuccessMessage = TempData["SuccessMessage"]?.ToString();
+
+            if (TempData["ProcessingOfferId"] is int processingId)
+                AwaitingPaymentOfferId = processingId;
 
             await LoadMyListingsAsync();
             await LoadReceivedOffersAsync();
@@ -89,7 +93,21 @@ namespace ArcaneVault.Web.Pages.Marketplace
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
-                    SuccessMessage = "Offer accepted! Item has been transferred to the buyer.";
+                    var responseJson = await httpResponse.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<AcceptOfferResponse>(responseJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (result?.AwaitingPayment == true)
+                    {
+                        // Buyer didn't have enough — show processing state and poll
+                        ProcessingMessage = $"Offer accepted. The buyer has been notified to top up their wallet. Waiting for payment... (deadline in 15 minutes)";
+                        AwaitingPaymentOfferId = offerId;
+                        TempData["ProcessingOfferId"] = offerId;
+                    }
+                    else
+                    {
+                        SuccessMessage = "Offer accepted! Item has been transferred to the buyer.";
+                    }
                 }
                 else
                 {
@@ -98,7 +116,11 @@ namespace ArcaneVault.Web.Pages.Marketplace
                     {
                         var errorObj = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
                             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        ErrorMessage = errorObj?.Message ?? "Failed to accept offer.";
+
+                        if ((int)httpResponse.StatusCode == 402 && errorObj?.InsufficientFunds == true)
+                            ErrorMessage = $"Cannot accept offer";
+                        else
+                            ErrorMessage = errorObj?.Message ?? "Failed to accept offer.";
                     }
                     catch
                     {
@@ -230,6 +252,16 @@ namespace ArcaneVault.Web.Pages.Marketplace
         public class ErrorResponse
         {
             public string Message { get; set; } = string.Empty;
+            public bool InsufficientFunds { get; set; }
+        }
+
+        public class AcceptOfferResponse
+        {
+            public string Message { get; set; } = string.Empty;
+            public int OfferId { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public bool AwaitingPayment { get; set; }
+            public DateTime? PaymentDeadline { get; set; }
         }
     }
 }

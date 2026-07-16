@@ -20,6 +20,12 @@ namespace ArcaneVault.API.Data
 
         public bool IsDeleted { get; set; } = false;
 
+        /// <summary>
+        /// User's wallet balance for marketplace purchases.
+        /// </summary>
+        [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "decimal(10,2)")]
+        public decimal WalletBalance { get; set; } = 0;
+
         [ForeignKey("Role")]
         public int RoleId { get; set; }
 
