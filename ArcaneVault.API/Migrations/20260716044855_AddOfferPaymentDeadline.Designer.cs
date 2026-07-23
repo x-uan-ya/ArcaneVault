@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArcaneVault.API.Migrations
 {
     [DbContext(typeof(ArcaneVaultDbContext))]
-    [Migration("20260721040556_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260716044855_AddOfferPaymentDeadline")]
+    partial class AddOfferPaymentDeadline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
