@@ -2,6 +2,7 @@
 
 using ArcaneVault.API.Data;
 using ArcaneVault.API.Services;
+using Amazon.RDS.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -16,21 +17,34 @@ namespace ArcaneVault.API
             var builder = WebApplication.CreateBuilder(args);
 
             // ========== DATABASE CONFIGURATION ==========
-            // EF Core with SQLite — use an absolute path so it works on AWS too
-            var dbPath = builder.Configuration.GetConnectionString("DefaultConnection")
-                         ?? "Data Source=ArcaneVault.db";
-            // If the connection string is a relative filename, anchor it to a writable folder
-            if (dbPath.StartsWith("Data Source=") && !dbPath.Contains('/') && !dbPath.Contains('\\'))
+            if (builder.Environment.IsDevelopment())
             {
-                var folder = builder.Environment.IsDevelopment()
-                    ? builder.Environment.ContentRootPath
-                    : Path.Combine(Path.GetTempPath(), "ArcaneVault");
-                Directory.CreateDirectory(folder);
-                dbPath = $"Data Source={Path.Combine(folder, "ArcaneVault.db")}";
-            }
+                // ---- LOCAL DEV: SQLite (no PostgreSQL install required) ----
+                var sqlitePath = builder.Configuration.GetConnectionString("DefaultConnection")
+                    ?? "Data Source=ArcaneVault.db";
 
-            builder.Services.AddDbContext<ArcaneVaultDbContext>(options =>
-                options.UseSqlite(dbPath));
+                builder.Services.AddDbContext<ArcaneVaultDbContext>(options =>
+                    options.UseSqlite(sqlitePath));
+            }
+            else
+            {
+                // ---- PRODUCTION: PostgreSQL on AWS RDS with IAM auth token ----
+                var rdsHost = builder.Configuration["RDS:Host"]
+                    ?? "database-1.cluster-cmdu886so4ms.us-east-1.rds.amazonaws.com";
+                var rdsPort = int.Parse(builder.Configuration["RDS:Port"] ?? "5432");
+                var rdsUser = builder.Configuration["RDS:User"] ?? "postgres";
+                var rdsRegion = builder.Configuration["RDS:Region"] ?? "us-east-1";
+                var rdsDb = builder.Configuration["RDS:Database"] ?? "arcanevault";
+
+                var authToken = RDSAuthTokenGenerator.GenerateAuthToken(
+                    Amazon.RegionEndpoint.GetBySystemName(rdsRegion),
+                    rdsHost, rdsPort, rdsUser);
+
+                var pgConnectionString = $"Host={rdsHost};Port={rdsPort};Database={rdsDb};Username={rdsUser};Password={authToken};SSL Mode=Require;Trust Server Certificate=true";
+
+                builder.Services.AddDbContext<ArcaneVaultDbContext>(options =>
+                    options.UseNpgsql(pgConnectionString));
+            }
 
             // ========== AUTHENTICATION & AUTHORIZATION ==========
             // JWT Configuration
@@ -90,24 +104,29 @@ namespace ArcaneVault.API
             var app = builder.Build();
 
             // ========== DATABASE INITIALIZATION ==========
-            // Auto-apply migrations and seed data on startup
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ArcaneVaultDbContext>();
-                db.Database.Migrate();
 
-                // Ensure admin account exists with correct password hash
-                var adminUser = db.Users.FirstOrDefault(u => u.UserName == "admin");
-                if (adminUser != null)
+                if (app.Environment.IsDevelopment())
                 {
-                    // Generate a fresh BCrypt hash for "Admin@123"
-                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
-                    if (adminUser.PasswordHash != hashedPassword)
-                    {
-                        adminUser.PasswordHash = hashedPassword;
-                        db.Users.Update(adminUser);
-                        db.SaveChanges();
-                    }
+                    // SQLite: create the database file and all tables if they don't exist yet
+                    db.Database.EnsureCreated();
+                }
+                else
+                {
+                    // PostgreSQL on AWS: apply any pending EF migrations
+                    db.Database.Migrate();
+                }
+
+                // Ensure the seeded admin password is valid (verify, don't compare hashes directly —
+                // BCrypt hashes are non-deterministic so two hashes of the same password never match)
+                var adminUser = db.Users.FirstOrDefault(u => u.UserName == "admin");
+                if (adminUser != null && !BCrypt.Net.BCrypt.Verify("Admin@123", adminUser.PasswordHash))
+                {
+                    adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                    db.Users.Update(adminUser);
+                    db.SaveChanges();
                 }
             }
 
@@ -130,7 +149,6 @@ namespace ArcaneVault.API
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
-            app.Run();
         }
     }
 }

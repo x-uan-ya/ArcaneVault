@@ -37,7 +37,13 @@ namespace ArcaneVault.Web
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            // Only redirect to HTTPS in development.
+            // On AWS Elastic Beanstalk the app runs on HTTP behind a load balancer
+            // that terminates SSL, so HTTPS redirection here would cause a redirect loop.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
             app.UseStaticFiles();
             app.UseRouting();
 
