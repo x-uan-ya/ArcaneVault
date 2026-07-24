@@ -15,7 +15,7 @@ namespace ArcaneVault.API.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
 
             modelBuilder.Entity("ArcaneVault.API.Data.ArcaneVaultCategories", b =>
                 {
@@ -128,6 +128,9 @@ namespace ArcaneVault.API.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal>("WalletBalance")
+                        .HasColumnType("decimal(10,2)");
+
                     b.HasKey("UserName");
 
                     b.HasIndex("RoleId");
@@ -141,7 +144,8 @@ namespace ArcaneVault.API.Migrations
                             Email = "admin@arcanevault.com",
                             IsDeleted = false,
                             PasswordHash = "$2a$12$R9h/cIPz0gi.URNNV3kh2OPST9/PgBkqquzi.Ee4kGXpVuLxNs.lq",
-                            RoleId = 2
+                            RoleId = 2,
+                            WalletBalance = 0m
                         });
                 });
 
@@ -358,6 +362,9 @@ namespace ArcaneVault.API.Migrations
                     b.Property<int?>("ParentOfferId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("PaymentDeadline")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("QuantityRequested")
                         .HasColumnType("INTEGER");
 
@@ -385,6 +392,43 @@ namespace ArcaneVault.API.Migrations
                     b.HasIndex("TradeItemId");
 
                     b.ToTable("Offers");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.WalletTransaction", b =>
+                {
+                    b.Property<int>("TransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TransactionId");
+
+                    b.HasIndex("UserName");
+
+                    b.ToTable("WalletTransactions");
                 });
 
             modelBuilder.Entity("ArcaneVault.API.Data.Wishlist", b =>
@@ -513,6 +557,17 @@ namespace ArcaneVault.API.Migrations
                     b.Navigation("OriginalOffer");
 
                     b.Navigation("TradeItem");
+                });
+
+            modelBuilder.Entity("ArcaneVault.API.Data.WalletTransaction", b =>
+                {
+                    b.HasOne("ArcaneVault.API.Data.ArcaneVaultUsers", "User")
+                        .WithMany()
+                        .HasForeignKey("UserName")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ArcaneVault.API.Data.Wishlist", b =>

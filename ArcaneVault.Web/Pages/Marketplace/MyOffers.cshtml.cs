@@ -19,6 +19,7 @@ namespace ArcaneVault.Web.Pages.Marketplace
         }
 
         public List<OfferDto> MyOffers { get; set; } = new();
+        public decimal WalletBalance { get; set; }
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
 
@@ -28,6 +29,7 @@ namespace ArcaneVault.Web.Pages.Marketplace
                 return RedirectToPage("/Account/Login");
 
             await LoadMyOffersAsync();
+            await LoadWalletBalanceAsync();
             return Page();
         }
 
@@ -69,7 +71,77 @@ namespace ArcaneVault.Web.Pages.Marketplace
             }
 
             await LoadMyOffersAsync();
+            await LoadWalletBalanceAsync();
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostConfirmPaymentAsync(int offerId)
+        {
+            if (!SessionHelper.IsLoggedIn(HttpContext.Session))
+                return RedirectToPage("/Account/Login");
+
+            try
+            {
+                var client = _http.CreateClient("API");
+                client.SetAuthorizationToken(HttpContext.Session);
+
+                var response = await client.PostAsync($"api/marketplace/offers/{offerId}/confirm-payment", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    SuccessMessage = "Payment confirmed! The item has been added to your collection.";
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var errorObj = JsonSerializer.Deserialize<PaymentErrorResponse>(errorContent,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                        if (errorObj?.Cancelled == true)
+                            ErrorMessage = "The payment window has expired and this transaction has been cancelled.";
+                        else if (errorObj?.InsufficientFunds == true)
+                            ErrorMessage = $"Still not enough funds. You need ${errorObj.Required:F2} but have ${errorObj.Available:F2}. Please <a href='/Wallet/Index'>top up ${errorObj.Shortfall:F2} more</a>.";
+                        else
+                            ErrorMessage = errorObj?.Message ?? "Payment confirmation failed.";
+                    }
+                    catch
+                    {
+                        ErrorMessage = "Payment confirmation failed. Please try again.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error confirming payment: {ex.Message}");
+                ErrorMessage = "An error occurred processing your payment.";
+            }
+
+            await LoadMyOffersAsync();
+            await LoadWalletBalanceAsync();
+            return Page();
+        }
+
+        private async Task LoadWalletBalanceAsync()
+        {
+            try
+            {
+                var client = _http.CreateClient("API");
+                client.SetAuthorizationToken(HttpContext.Session);
+                var response = await client.GetAsync("api/users/me/wallet");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var result = System.Text.Json.JsonSerializer.Deserialize<WalletBalanceDto>(json,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    WalletBalance = result?.WalletBalance ?? 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error loading wallet: {ex.Message}");
+            }
         }
 
         private async Task LoadMyOffersAsync()
@@ -105,12 +177,29 @@ namespace ArcaneVault.Web.Pages.Marketplace
             public string Status { get; set; } = string.Empty;
             public DateTime OfferedDate { get; set; }
             public DateTime? ResponseDate { get; set; }
+            public DateTime? PaymentDeadline { get; set; }
             public string SellerUserName { get; set; } = string.Empty;
         }
 
         public class ErrorResponse
         {
             public string Message { get; set; } = string.Empty;
+        }
+
+        public class PaymentErrorResponse
+        {
+            public string Message { get; set; } = string.Empty;
+            public bool InsufficientFunds { get; set; }
+            public bool Cancelled { get; set; }
+            public decimal Required { get; set; }
+            public decimal Available { get; set; }
+            public decimal Shortfall { get; set; }
+            public DateTime? PaymentDeadline { get; set; }
+        }
+
+        public class WalletBalanceDto
+        {
+            public decimal WalletBalance { get; set; }
         }
     }
 }

@@ -9,7 +9,6 @@ namespace ArcaneVault.Web
             var builder = WebApplication.CreateBuilder(args);
 
             // The rest of your standard configuration remains the same:
-            builder.Services.AddControllers();
             // Razor Pages
             builder.Services.AddRazorPages();
 

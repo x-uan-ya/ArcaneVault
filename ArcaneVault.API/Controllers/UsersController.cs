@@ -198,6 +198,118 @@ namespace ArcaneVault.API.Controllers
             }
         }
 
+        // GET api/users/me/wallet
+        // Returns the authenticated user's wallet balance
+        [Authorize]
+        [HttpGet("me/wallet")]
+        public async Task<IActionResult> GetWalletBalance()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized();
+
+                var user = await _db.Users
+                    .FirstOrDefaultAsync(u => u.UserName == username && !u.IsDeleted);
+
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+
+                return Ok(new { walletBalance = user.WalletBalance });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving wallet balance: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred retrieving wallet balance." });
+            }
+        }
+
+        // POST api/users/me/wallet/topup
+        // Adds funds to the authenticated user's wallet
+        [Authorize]
+        [HttpPost("me/wallet/topup")]
+        public async Task<IActionResult> TopUpWallet([FromBody] TopUpRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized();
+
+                var user = await _db.Users
+                    .FirstOrDefaultAsync(u => u.UserName == username && !u.IsDeleted);
+
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+
+                user.WalletBalance += request.Amount;
+                await _db.SaveChangesAsync();
+
+                // Record transaction
+                _db.WalletTransactions.Add(new WalletTransaction
+                {
+                    UserName = username,
+                    Type = "TopUp",
+                    Amount = request.Amount,
+                    Description = $"Wallet top-up of ${request.Amount:F2}",
+                    BalanceAfter = user.WalletBalance,
+                    TransactionDate = DateTime.UtcNow
+                });
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation($"User '{username}' topped up wallet by {request.Amount:C}. New balance: {user.WalletBalance:C}.");
+
+                return Ok(new { walletBalance = user.WalletBalance, message = $"Successfully added ${request.Amount:F2} to your wallet." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error topping up wallet: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred processing your top-up." });
+            }
+        }
+
+        // GET api/users/me/wallet/transactions
+        // Returns the authenticated user's wallet transaction history
+        [Authorize]
+        [HttpGet("me/wallet/transactions")]
+        public async Task<IActionResult> GetWalletTransactions()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized();
+
+                var transactions = await _db.WalletTransactions
+                    .Where(t => t.UserName == username)
+                    .OrderByDescending(t => t.TransactionDate)
+                    .Select(t => new
+                    {
+                        t.TransactionId,
+                        t.Type,
+                        t.Amount,
+                        t.Description,
+                        t.BalanceAfter,
+                        t.TransactionDate
+                    })
+                    .ToListAsync();
+
+                return Ok(transactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving wallet transactions: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred retrieving transaction history." });
+            }
+        }
+
         // DELETE api/users/me
         // Soft-deletes the currently authenticated user's account
         [Authorize]
@@ -271,5 +383,13 @@ namespace ArcaneVault.API.Controllers
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 6,
             ErrorMessage = "New password must be at least 6 characters.")]
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    // DTO: Wallet Top-Up
+    public class TopUpRequest
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Amount is required.")]
+        [System.ComponentModel.DataAnnotations.Range(0.01, 99999.99, ErrorMessage = "Amount must be between $0.01 and $99,999.99.")]
+        public decimal Amount { get; set; }
     }
 }

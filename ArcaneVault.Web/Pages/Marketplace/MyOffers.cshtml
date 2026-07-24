@@ -1,3 +1,4 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
 @page
 @model ArcaneVault.Web.Pages.Marketplace.MyOffersModel
 @{
@@ -7,9 +8,14 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-envelope"></i> My Offers</h2>
-        <a asp-page="Index" class="btn btn-primary">
-            <i class="bi bi-search"></i> Browse Marketplace
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-page="/Wallet/Index" class="btn btn-outline-warning">
+                <i class="bi bi-wallet2 me-1"></i> Wallet: <strong>$@Model.WalletBalance.ToString("F2")</strong>
+            </a>
+            <a asp-page="Index" class="btn btn-primary">
+                <i class="bi bi-search"></i> Browse Marketplace
+            </a>
+        </div>
     </div>
 
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
@@ -107,6 +113,12 @@
                                                 <i class="bi bi-arrow-counterclockwise"></i> @offer.Status
                                             </span>
                                         }
+                                        else if (offer.Status == "ItemSold")
+                                        {
+                                            <span class="badge bg-dark">
+                                                <i class="bi bi-bag-x-fill"></i> Item Sold
+                                            </span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-secondary">@offer.Status</span>
@@ -142,6 +154,12 @@
                                                 <i class="bi bi-gift"></i> Item transferred
                                             </span>
                                         }
+                                        else if (offer.Status == "ItemSold")
+                                        {
+                                            <span class="text-dark">
+                                                <i class="bi bi-bag-x-fill"></i> Item sold to another buyer
+                                            </span>
+                                        }
                                         else
                                         {
                                             <span class="text-muted">-</span>
@@ -155,35 +173,43 @@
 
                 <!-- Summary Cards -->
                 <div class="row mt-4">
-                    <div class="col-md-3">
+                    <div class="col-md-2 col-sm-4 mb-2">
                         <div class="card border-warning">
                             <div class="card-body text-center">
                                 <h3 class="text-warning">@Model.MyOffers.Count(o => o.Status == "Pending")</h3>
-                                <p class="mb-0 text-muted">Pending</p>
+                                <p class="mb-0 text-muted small">Pending</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2 col-sm-4 mb-2">
                         <div class="card border-success">
                             <div class="card-body text-center">
                                 <h3 class="text-success">@Model.MyOffers.Count(o => o.Status == "Accepted")</h3>
-                                <p class="mb-0 text-muted">Accepted</p>
+                                <p class="mb-0 text-muted small">Accepted</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2 col-sm-4 mb-2">
                         <div class="card border-danger">
                             <div class="card-body text-center">
                                 <h3 class="text-danger">@Model.MyOffers.Count(o => o.Status == "Rejected")</h3>
-                                <p class="mb-0 text-muted">Rejected</p>
+                                <p class="mb-0 text-muted small">Rejected</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2 col-sm-4 mb-2">
                         <div class="card border-secondary">
                             <div class="card-body text-center">
                                 <h3 class="text-secondary">@Model.MyOffers.Count(o => o.Status == "Withdrawn")</h3>
-                                <p class="mb-0 text-muted">Withdrawn</p>
+                                <p class="mb-0 text-muted small">Withdrawn</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <div class="card border-dark">
+                            <div class="card-body text-center">
+                                <h3 class="text-dark">@Model.MyOffers.Count(o => o.Status == "ItemSold")</h3>
+                                <p class="mb-0 text-muted small">Item Sold</p>
                             </div>
                         </div>
                     </div>

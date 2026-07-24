@@ -1,0 +1,168 @@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@page
+@model ArcaneVault.Web.Pages.Wallet.IndexModel
+@{
+    ViewData["Title"] = "My Wallet";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <h2 class="mb-4"><i class="bi bi-wallet2"></i> My Wallet</h2>
+
+        @* Alerts *@
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @* Balance card *@
+        <div class="class="card mb-4 shadow-sm border-0 text-black">
+            <div class="card-body text-center py-4">
+                <p class="mb-1 text-secondary fs-6">Current Balance</p>
+                <h1 class="display-4 fw-bold text-warning">$@Model.WalletBalance.ToString("F2")</h1>
+                <p class="text-secondary small mb-0">Available for marketplace purchases</p>
+            </div>
+        </div>
+
+        @* Top-up form *@
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-plus-circle me-2 text-success"></i>Top Up Wallet</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="TopUp">
+                    <div class="mb-3">
+                        <label asp-for="TopUpAmount" class="form-label fw-semibold">Amount to Add ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="TopUpAmount" type="number" step="0.01" min="0.01" max="99999.99"
+                                   class="form-control form-control-lg" placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="TopUpAmount" class="text-danger small"></span>
+                    </div>
+
+                    @* Quick amounts *@
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">Quick amounts:</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-amount" data-amount="10">+ $10</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-amount" data-amount="25">+ $25</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-amount" data-amount="50">+ $50</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-amount" data-amount="100">+ $100</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm quick-amount" data-amount="500">+ $500</button>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-wallet2 me-2"></i>Top Up Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @* Transaction history *@
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Transaction History</h5>
+                <span class="badge bg-secondary">@Model.Transactions.Count entries</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.Transactions.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox" style="font-size:2.5rem;"></i>
+                        <p class="mt-2 mb-0">No transactions yet. Top up your wallet to get started!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:130px">Date</th>
+                                    <th style="width:90px">Type</th>
+                                    <th>Description</th>
+                                    <th class="text-end" style="width:110px">Amount</th>
+                                    <th class="text-end" style="width:120px">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tx in Model.Transactions)
+                                {
+                                    bool isCredit = tx.Amount > 0;
+                                    string amountClass = isCredit ? "text-success fw-semibold" : "text-danger fw-semibold";
+                                    string amountStr  = isCredit ? $"+${tx.Amount:F2}" : $"-${Math.Abs(tx.Amount):F2}";
+
+                                    string typeBadge = tx.Type switch
+                                    {
+                                        "TopUp"    => "bg-success",
+                                        "Sale"     => "bg-primary",
+                                        "Purchase" => "bg-danger",
+                                        _          => "bg-secondary"
+                                    };
+
+                                    string typeIcon = tx.Type switch
+                                    {
+                                        "TopUp"    => "bi-arrow-down-circle-fill",
+                                        "Sale"     => "bi-bag-check-fill",
+                                        "Purchase" => "bi-cart-fill",
+                                        _          => "bi-circle"
+                                    };
+
+                                    <tr>
+                                        <td>
+                                            <small class="text-muted">
+                                                @tx.TransactionDate.ToLocalTime().ToString("dd MMM yyyy")<br/>
+                                                @tx.TransactionDate.ToLocalTime().ToString("HH:mm")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge @typeBadge">
+                                                <i class="bi @typeIcon me-1"></i>@tx.Type
+                                            </span>
+                                        </td>
+                                        <td class="text-muted small">@tx.Description</td>
+                                        <td class="text-end @amountClass">@amountStr</td>
+                                        <td class="text-end text-muted small">$@tx.BalanceAfter.ToString("F2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-3 text-center">
+            <a asp-page="/Marketplace/Index" class="btn btn-outline-primary">
+                <i class="bi bi-shop me-1"></i>Back to Marketplace
+            </a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('.quick-amount').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.getElementById('TopUpAmount').value = this.dataset.amount;
+            });
+        });
+    </script>
+}

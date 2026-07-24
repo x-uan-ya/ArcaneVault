@@ -155,9 +155,15 @@ namespace ArcaneVault.Web.Pages.Marketplace
                     var errorContent = await response.Content.ReadAsStringAsync();
                     try
                     {
-                        var errorObj = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
+                        var errorObj = JsonSerializer.Deserialize<OfferErrorResponse>(errorContent,
                             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        ErrorMessage = errorObj?.Message ?? "Failed to submit offer.";
+
+                        if ((int)response.StatusCode == 409 && errorObj?.AlreadyOffered == true)
+                            ErrorMessage = $"You already have a pending offer on this listing. Go to <a href='/Marketplace/MyOffers'>My Offers</a> to withdraw it before submitting a new one.";
+                        else if ((int)response.StatusCode == 402 && errorObj?.InsufficientFunds == true)
+                            ErrorMessage = $"You don't have enough funds. You need <strong>${errorObj.Required:F2}</strong> but your wallet only has <strong>${errorObj.Available:F2}</strong>. Please <a href='/Wallet/Index'>top up ${errorObj.Shortfall:F2}</a> before submitting this offer.";
+                        else
+                            ErrorMessage = errorObj?.Message ?? "Failed to submit offer.";
                     }
                     catch
                     {
@@ -280,6 +286,17 @@ namespace ArcaneVault.Web.Pages.Marketplace
         public class ErrorResponse
         {
             public string Message { get; set; } = string.Empty;
+        }
+
+        public class OfferErrorResponse
+        {
+            public string Message { get; set; } = string.Empty;
+            public int? ExistingOfferId { get; set; }
+            public bool AlreadyOffered { get; set; }
+            public bool InsufficientFunds { get; set; }
+            public decimal Required { get; set; }
+            public decimal Available { get; set; }
+            public decimal Shortfall { get; set; }
         }
     }
 }
