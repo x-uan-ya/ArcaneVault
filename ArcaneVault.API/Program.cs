@@ -91,25 +91,36 @@ namespace ArcaneVault.API
 
             // ========== DATABASE INITIALIZATION ==========
             // Auto-apply migrations and seed data on startup
-            using (var scope = app.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ArcaneVaultDbContext>();
-                db.Database.Migrate();
-
-                // Ensure admin account exists with correct password hash
-                var adminUser = db.Users.FirstOrDefault(u => u.UserName == "admin");
-                if (adminUser != null)
+           using (var scope = app.Services.CreateScope())
                 {
-                    // Generate a fresh BCrypt hash for "Admin@123"
-                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
-                    if (adminUser.PasswordHash != hashedPassword)
+                    var services = scope.ServiceProvider;
+                    try
                     {
-                        adminUser.PasswordHash = hashedPassword;
-                        db.Users.Update(adminUser);
-                        db.SaveChanges();
+                        var db = services.GetRequiredService<ArcaneVaultDbContext>();
+                        db.Database.Migrate();
+                    // Ensure admin account exists with correct password hash
+                    var adminUser = db.Users.FirstOrDefault(u => u.UserName == "admin");
+                    if (adminUser != null)
+                    {
+                        // Generate a fresh BCrypt hash for "Admin@123"
+                        string hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                        if (adminUser.PasswordHash != hashedPassword)
+                        {
+                            adminUser.PasswordHash = hashedPassword;
+                            db.Users.Update(adminUser);
+                            db.SaveChanges();
+                        }
+                    }
+
+                }
+                catch (Exception ex)
+                    {
+                        var logger = services.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(ex, "An error occurred while migrating the database.");
                     }
                 }
-            }
+
+                
 
             // ========== MIDDLEWARE PIPELINE ==========
 
