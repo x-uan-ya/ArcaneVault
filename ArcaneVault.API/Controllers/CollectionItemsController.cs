@@ -140,10 +140,6 @@ namespace ArcaneVault.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Validate quantity constraint: CurrentQuantity <= StartingQuantity
-                if (request.CurrentQuantity > request.StartingQuantity)
-                    return BadRequest(new { message = "Current quantity cannot exceed starting quantity." });
-
                 // Verify user exists
                 if (!await _db.Users.AnyAsync(u => u.UserName == request.UserName && !u.IsDeleted))
                     return BadRequest(new { message = "User not found." });
@@ -223,10 +219,6 @@ namespace ArcaneVault.API.Controllers
                     _logger.LogWarning($"Unauthorized update attempt on item {id} by user '{currentUsername}'.");
                     return Forbid("You do not have permission to update this item.");
                 }
-
-                // Validate quantity constraint: CurrentQuantity <= StartingQuantity
-                if (request.CurrentQuantity > item.StartingQuantity)
-                    return BadRequest(new { message = "Current quantity cannot exceed starting quantity." });
 
                 // Verify category codes
                 if (request.CategoryCodes != null)
