@@ -14,6 +14,7 @@ namespace ArcaneVault.Web.Pages.CollectionItems
         public IndexModel(IHttpClientFactory http) => _http = http;
 
         public List<ItemDto> Items { get; set; } = new();
+        public string CurrentUserName { get; set; } = string.Empty;
 
         [BindProperty(SupportsGet = true)]
         public string? Search { get; set; }
@@ -24,9 +25,9 @@ namespace ArcaneVault.Web.Pages.CollectionItems
                 return RedirectToPage("/Account/Login");
 
             var client = _http.CreateClient("API");
-            client.SetAuthorizationToken(HttpContext.Session); // Add JWT token
+            client.SetAuthorizationToken(HttpContext.Session);
             
-            string userName = SessionHelper.GetUserName(HttpContext.Session)!;
+            CurrentUserName = SessionHelper.GetUserName(HttpContext.Session)!;
 
             // Since API now automatically filters by authenticated user, just call the endpoint
             string url = "api/collectionitems";

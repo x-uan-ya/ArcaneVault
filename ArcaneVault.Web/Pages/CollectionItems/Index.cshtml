@@ -69,6 +69,17 @@ else
                     <td>
                         <a asp-page="Details" asp-route-id="@item.ItemId"
                            class="btn btn-sm btn-info me-1">Details</a>
+                        @if (item.UserName == Model.CurrentUserName)
+                        {
+                            <a asp-page="Edit" asp-route-id="@item.ItemId"
+                               class="btn btn-sm btn-warning me-1">Edit</a>
+                            <form method="post" asp-page="Delete" asp-route-id="@item.ItemId"
+                                  style="display:inline"
+                                  onsubmit="return confirm('Delete @item.ItemName? This cannot be undone.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }
