@@ -1,4 +1,4 @@
-﻿@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
+@* Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04 *@
 @{
     // Helper to read session in the layout
     var sess       = ViewContext.HttpContext.Session;
@@ -80,7 +80,51 @@
                         }
                         else
                         {
-                            @* Logged in: show username dropdown and Logout *@
+                            @* Logged in: notification bell + username dropdown + Logout *@
+
+                            @* ── Notification Bell ── *@
+                            <li class="nav-item me-1" id="notif-nav-item">
+                                <a class="nav-link text-white position-relative px-2" href="#"
+                                   id="notifBell" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false"
+                                   data-bs-auto-close="outside">
+                                    <i class="bi bi-bell-fill fs-5"></i>
+                                    <span id="notifBadge"
+                                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                          style="display:none; font-size:.6rem; min-width:1.1rem;"></span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-0 rounded-3 overflow-hidden"
+                                     style="min-width:370px; max-width:400px;"
+                                     aria-labelledby="notifBell">
+
+                                    @* Header *@
+                                    <div class="d-flex justify-content-between align-items-center px-3 py-2"
+                                         style="background:#f8f9fa; border-bottom:1px solid #e9ecef;">
+                                        <span class="fw-bold fs-6">🔔 Notifications</span>
+                                        <button class="btn btn-sm btn-link text-success p-0 text-decoration-none fw-semibold"
+                                                onclick="markAllRead(event)">
+                                            <i class="bi bi-check2-all me-1"></i>Mark all as read
+                                        </button>
+                                    </div>
+
+                                    @* Date group label inserted by JS *@
+                                    <div id="notifList" style="max-height:420px; overflow-y:auto; background:#fff;">
+                                        <div class="text-center text-muted py-5" id="notifEmpty">
+                                            <div class="mb-2" style="font-size:2rem;">✅</div>
+                                            <div class="fw-semibold">No new notifications</div>
+                                            <div class="small">You're all caught up!</div>
+                                        </div>
+                                    </div>
+
+                                    @* Footer *@
+                                    <div class="text-center py-2 border-top" style="background:#f8f9fa;">
+                                        <button class="btn btn-sm btn-link text-muted text-decoration-none p-0 small"
+                                                onclick="clearAllNotifications(event)">
+                                            <i class="bi bi-trash me-1"></i>Clear all
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-warning" href="#" 
                                    id="userDropdown" role="button" 
@@ -136,5 +180,162 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    @if (isLoggedIn)
+    {
+        <script>
+        // ── Notification Bell Logic ──────────────────────────────────────────
+        const NOTIF_ICONS = {
+            collection:  { icon: 'bi-collection-fill',  bg: '#dbeafe', color: '#1d4ed8' },
+            marketplace: { icon: 'bi-shop-window',       bg: '#dcfce7', color: '#16a34a' },
+            offer:       { icon: 'bi-tag-fill',           bg: '#fef9c3', color: '#b45309' },
+            wallet:      { icon: 'bi-wallet2',            bg: '#fce7f3', color: '#be185d' },
+            system:      { icon: 'bi-bell-fill',          bg: '#f1f5f9', color: '#475569' }
+        };
+
+        function timeAgo(dateStr) {
+            const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+            if (diff < 60)    return diff + 's ago';
+            if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+            return Math.floor(diff / 86400) + 'd ago';
+        }
+
+        function isToday(dateStr) {
+            const d = new Date(dateStr);
+            const now = new Date();
+            return d.getFullYear() === now.getFullYear() &&
+                   d.getMonth() === now.getMonth() &&
+                   d.getDate() === now.getDate();
+        }
+
+        function isYesterday(dateStr) {
+            const d = new Date(dateStr);
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            return d.getFullYear() === yesterday.getFullYear() &&
+                   d.getMonth() === yesterday.getMonth() &&
+                   d.getDate() === yesterday.getDate();
+        }
+
+        function dateLabel(dateStr) {
+            if (isToday(dateStr))     return 'Today';
+            if (isYesterday(dateStr)) return 'Yesterday';
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function buildNotifItem(n) {
+            const cfg = NOTIF_ICONS[n.category] || NOTIF_ICONS.system;
+            const unreadDot = n.isRead ? '' :
+                `<span style="width:8px;height:8px;border-radius:50%;background:#22c55e;
+                              display:inline-block;margin-right:6px;flex-shrink:0;margin-top:4px;"></span>`;
+            const bg = n.isRead ? '#fff' : '#f0fdf4';
+
+            return `
+            <div class="notif-item d-flex align-items-start gap-3 px-3 py-3"
+                 onclick="markRead(${n.notificationId}, '${n.linkUrl || ''}')"
+                 style="cursor:${n.linkUrl ? 'pointer' : 'default'};
+                        background:${bg};
+                        border-bottom:1px solid #f1f5f9;
+                        transition:background .15s;"
+                 onmouseover="this.style.background='#f8fafc'"
+                 onmouseout="this.style.background='${bg}'">
+
+                <div style="width:42px;height:42px;border-radius:50%;
+                            background:${cfg.bg};display:flex;align-items:center;
+                            justify-content:center;flex-shrink:0;">
+                    <i class="bi ${cfg.icon}" style="color:${cfg.color};font-size:1.1rem;"></i>
+                </div>
+
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="d-flex align-items-start justify-content-between gap-1">
+                        <div class="d-flex align-items-start flex-grow-1">
+                            ${unreadDot}
+                            <span class="small ${n.isRead ? 'text-secondary' : 'text-dark fw-semibold'}"
+                                  style="line-height:1.35;">${n.message}</span>
+                        </div>
+                        <span class="text-muted flex-shrink-0 ms-2" style="font-size:.7rem;white-space:nowrap;">
+                            ${timeAgo(n.createdAt)}
+                        </span>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        async function loadNotifications() {
+            try {
+                const res = await fetch('/api-proxy/notifications');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                const badge = document.getElementById('notifBadge');
+                const list  = document.getElementById('notifList');
+                const empty = document.getElementById('notifEmpty');
+
+                // Update badge
+                if (data.unreadCount > 0) {
+                    badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                list.querySelectorAll('.notif-item, .notif-date-group').forEach(el => el.remove());
+
+                if (!data.notifications || data.notifications.length === 0) {
+                    empty.style.display = '';
+                    return;
+                }
+
+                empty.style.display = 'none';
+
+                // Group by date
+                const groups = {};
+                data.notifications.forEach(n => {
+                    const label = dateLabel(n.createdAt);
+                    if (!groups[label]) groups[label] = [];
+                    groups[label].push(n);
+                });
+
+                Object.entries(groups).forEach(([label, items]) => {
+                    // Date header
+                    const header = document.createElement('div');
+                    header.className = 'notif-date-group px-3 py-1 small fw-semibold text-muted';
+                    header.style.cssText = 'background:#f8f9fa;border-bottom:1px solid #e9ecef;letter-spacing:.04em;';
+                    header.textContent = label;
+                    list.appendChild(header);
+
+                    items.forEach(n => {
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = buildNotifItem(n);
+                        list.appendChild(wrapper.firstElementChild);
+                    });
+                });
+            } catch (e) { /* silently ignore */ }
+        }
+
+        async function markRead(id, url) {
+            try { await fetch(`/api-proxy/notifications/${id}/read`, { method: 'PUT' }); } catch(e){}
+            if (url) window.location.href = url;
+            else loadNotifications();
+        }
+
+        async function markAllRead(e) {
+            e.preventDefault(); e.stopPropagation();
+            try { await fetch('/api-proxy/notifications/read-all', { method: 'PUT' }); } catch(e){}
+            loadNotifications();
+        }
+
+        async function clearAllNotifications(e) {
+            e.preventDefault(); e.stopPropagation();
+            try { await fetch('/api-proxy/notifications', { method: 'DELETE' }); } catch(e){}
+            loadNotifications();
+        }
+
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
+        document.getElementById('notifBell')?.addEventListener('show.bs.dropdown', loadNotifications);
+        </script>
+    }
 </body>
 </html>

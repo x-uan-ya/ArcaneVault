@@ -1,6 +1,7 @@
 // Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04
 
 using ArcaneVault.API.Data;
+using ArcaneVault.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,21 +9,19 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ArcaneVault.API.Controllers
 {
-    /// <summary>
-    /// Marketplace controller for buy/sell/trade functionality.
-    /// Handles listings, offers, and transaction completion.
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class MarketplaceController : ControllerBase
     {
         private readonly ArcaneVaultDbContext _db;
         private readonly ILogger<MarketplaceController> _logger;
+        private readonly INotificationService _notify;
 
-        public MarketplaceController(ArcaneVaultDbContext db, ILogger<MarketplaceController> logger)
+        public MarketplaceController(ArcaneVaultDbContext db, ILogger<MarketplaceController> logger, INotificationService notify)
         {
             _db = db;
             _logger = logger;
+            _notify = notify;
         }
 
         // ==================== MARKETPLACE LISTINGS ====================
@@ -269,6 +268,10 @@ namespace ArcaneVault.API.Controllers
 
                 _logger.LogInformation($"Listing created by '{username}': {listing.Title}");
 
+                await _notify.SendAsync(username,
+                    $"📢 Your listing \"{listing.Title}\" has been published to the marketplace.",
+                    "marketplace", "/Marketplace/MyListings");
+
                 return CreatedAtAction(nameof(GetListing), new { id = listing.ListingId },
                     new { listing.ListingId, listing.Title, listing.Status });
             }
@@ -435,6 +438,16 @@ namespace ArcaneVault.API.Controllers
                 await _db.SaveChangesAsync();
 
                 _logger.LogInformation($"Offer made by '{username}' on listing {listingId}.");
+
+                // Notify buyer that their offer was submitted
+                await _notify.SendAsync(username,
+                    $"📨 Your offer on \"{listing.Title}\" has been submitted.",
+                    "offer", "/Marketplace/MyOffers");
+
+                // Notify seller they received a new offer
+                await _notify.SendAsync(listing.SellerUserName,
+                    $"🔔 You received a new offer on your listing \"{listing.Title}\".",
+                    "offer", "/Marketplace/MyListings");
 
                 return CreatedAtAction(nameof(GetOffer), new { id = offer.OfferId },
                     new { offer.OfferId, offer.Status, offer.OfferedDate });
@@ -641,19 +654,33 @@ namespace ArcaneVault.API.Controllers
                     await ProcessPurchasePaymentAsync(offer, buyer, username);
                     await CompleteOfferTransferAsync(offer, username);
                     await _db.SaveChangesAsync();
+
+                    await _notify.SendAsync(offer.BuyerUserName,
+                        $"✅ Your offer on \"{offer.Listing!.Title}\" was accepted and payment processed. Item added to your collection!",
+                        "offer", "/Marketplace/MyOffers");
+                    await _notify.SendAsync(username,
+                        $"💰 You accepted an offer on \"{offer.Listing!.Title}\" and received payment.",
+                        "offer", "/Marketplace/MyListings");
+
                     _logger.LogInformation($"Purchase offer {id} accepted and payment processed immediately.");
                     return Ok(new { message = "Offer accepted and payment processed successfully.", offer.OfferId, offer.Status });
                 }
                 else
                 {
                     // ── POINT 2: Buyer doesn't have enough — enter AwaitingPayment ───
-                    // Give buyer 15 minutes to top up
                     offer.Status = "AwaitingPayment";
                     offer.ResponseDate = DateTime.UtcNow;
                     offer.SellerResponse = request.Response;
                     offer.PaymentDeadline = DateTime.UtcNow.AddMinutes(15);
 
                     await _db.SaveChangesAsync();
+
+                    await _notify.SendAsync(offer.BuyerUserName,
+                        $"⚠️ Your offer on \"{offer.Listing!.Title}\" was accepted but your wallet balance is insufficient. Please top up within 15 minutes.",
+                        "wallet", "/Wallet/Index");
+                    await _notify.SendAsync(username,
+                        $"⏳ You accepted an offer on \"{offer.Listing!.Title}\". Waiting for buyer to complete payment (15 min).",
+                        "offer", "/Marketplace/MyListings");
 
                     _logger.LogInformation($"Purchase offer {id} accepted by seller but buyer has insufficient funds. Awaiting payment until {offer.PaymentDeadline}.");
 
@@ -942,6 +969,10 @@ namespace ArcaneVault.API.Controllers
 
                 await _db.SaveChangesAsync();
 
+                await _notify.SendAsync(offer.BuyerUserName,
+                    $"❌ Your offer on \"{offer.Listing!.Title}\" has been rejected.",
+                    "offer", "/Marketplace/MyOffers");
+
                 _logger.LogInformation($"Offer {id} rejected by '{username}'.");
 
                 return Ok(new { message = "Offer rejected.", offer.OfferId, offer.Status });
@@ -984,6 +1015,15 @@ namespace ArcaneVault.API.Controllers
                 offer.IsDeleted = true;
 
                 await _db.SaveChangesAsync();
+
+                // Notify the seller their offer was withdrawn
+                var listing = await _db.MarketplaceListings.FindAsync(offer.ListingId);
+                if (listing != null)
+                {
+                    await _notify.SendAsync(listing.SellerUserName,
+                        $"↩️ An offer on your listing \"{listing.Title}\" has been withdrawn by the buyer.",
+                        "offer", "/Marketplace/MyListings");
+                }
 
                 _logger.LogInformation($"Offer {id} withdrawn by '{username}'.");
 

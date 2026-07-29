@@ -66,6 +66,7 @@ namespace ArcaneVault.API
             // ========== DEPENDENCY INJECTION ==========
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IFixedDepositService, FixedDepositService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
 
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();

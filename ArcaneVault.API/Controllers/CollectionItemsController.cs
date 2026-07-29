@@ -1,6 +1,7 @@
 // Name: Ng Xuan Ya | Admin: 253125M | Tutorial: 04
 
 using ArcaneVault.API.Data;
+using ArcaneVault.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ namespace ArcaneVault.API.Controllers
     {
         private readonly ArcaneVaultDbContext _db;
         private readonly ILogger<CollectionItemsController> _logger;
+        private readonly INotificationService _notify;
 
-        public CollectionItemsController(ArcaneVaultDbContext db, ILogger<CollectionItemsController> logger)
+        public CollectionItemsController(ArcaneVaultDbContext db, ILogger<CollectionItemsController> logger, INotificationService notify)
         {
             _db = db;
             _logger = logger;
+            _notify = notify;
         }
 
         // GET api/collectionitems?username=xxx&search=yyy
@@ -182,6 +185,10 @@ namespace ArcaneVault.API.Controllers
 
                 _logger.LogInformation($"Collection item '{request.ItemName}' created for user '{request.UserName}' by '{User.Identity?.Name}'.");
 
+                await _notify.SendAsync(request.UserName,
+                    $"✅ Item \"{item.ItemName}\" has been added to your collection.",
+                    "collection", "/CollectionItems/Index");
+
                 return CreatedAtAction(nameof(GetById), new { id = item.ItemId },
                     new { item.ItemId, item.ItemName, item.UserName });
             }
@@ -288,6 +295,10 @@ namespace ArcaneVault.API.Controllers
                 await _db.SaveChangesAsync();
 
                 _logger.LogInformation($"Collection item {id} deleted by user '{currentUsername}'.");
+
+                await _notify.SendAsync(currentUsername!,
+                    $"🗑️ Item \"{item.ItemName}\" has been removed from your collection.",
+                    "collection", "/CollectionItems/Index");
 
                 return NoContent();
             }

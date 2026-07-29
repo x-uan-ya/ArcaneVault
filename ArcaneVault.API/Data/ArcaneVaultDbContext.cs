@@ -20,6 +20,7 @@ namespace ArcaneVault.API.Data
         public DbSet<Offer> Offers { get; set; }
         public DbSet<Wishlist> Wishlists { get; set; }
         public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -106,6 +107,13 @@ namespace ArcaneVault.API.Data
                 .HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserName)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Notification -> Users
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserName)
                 .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
