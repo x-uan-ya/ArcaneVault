@@ -16,15 +16,13 @@ namespace ArcaneVault.API
             var builder = WebApplication.CreateBuilder(args);
 
             // ========== DATABASE CONFIGURATION ==========
-            // EF Core with SQLite — use an absolute path so it works on AWS too
+            // EF Core with SQLite
             var dbPath = builder.Configuration.GetConnectionString("DefaultConnection")
                          ?? "Data Source=ArcaneVault.db";
-            // If the connection string is a relative filename, anchor it to a writable folder
+            // Anchor relative filenames to the content root so the db is always found
             if (dbPath.StartsWith("Data Source=") && !dbPath.Contains('/') && !dbPath.Contains('\\'))
             {
-                var folder = builder.Environment.IsDevelopment()
-                    ? builder.Environment.ContentRootPath
-                    : Path.Combine(Path.GetTempPath(), "ArcaneVault");
+                var folder = builder.Environment.ContentRootPath;
                 Directory.CreateDirectory(folder);
                 dbPath = $"Data Source={Path.Combine(folder, "ArcaneVault.db")}";
             }
@@ -130,12 +128,7 @@ namespace ArcaneVault.API
                 app.MapOpenApi();
             }
 
-            // Only redirect to HTTPS in development — on AWS the load balancer handles SSL termination
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseHttpsRedirection();
-            }
-
+            app.UseHttpsRedirection();
             app.UseCors("AllowWeb");
 
             // Authentication & Authorization middleware
