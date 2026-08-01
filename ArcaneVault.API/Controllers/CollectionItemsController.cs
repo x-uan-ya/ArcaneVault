@@ -28,7 +28,7 @@ namespace ArcaneVault.API.Controllers
         // Public endpoint (returns all items to all users)
         /// <summary>
         /// GET /api/collectionitems - Get collection items
-        /// Requires authentication. Users can only see their own items unless they are Staff.
+        /// Requires authentication. Every user (including Staff) can only see their own items.
         /// </summary>
         [Authorize]
         [HttpGet]
@@ -37,7 +37,6 @@ namespace ArcaneVault.API.Controllers
             try
             {
                 var currentUser = User.Identity?.Name;
-                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
                 if (string.IsNullOrEmpty(currentUser))
                     return Unauthorized();
@@ -45,18 +44,7 @@ namespace ArcaneVault.API.Controllers
                 var query = _db.CollectionItems
                     .Include(i => i.CollectionItemCategories!)
                         .ThenInclude(c => c.Category)
-                    .Where(i => !i.IsDeleted);
-
-                // Staff can see all items, regular users can only see their own
-                if (userRole != "Staff")
-                {
-                    query = query.Where(i => i.UserName == currentUser);
-                }
-                else if (!string.IsNullOrWhiteSpace(user))
-                {
-                    // Staff can filter by username
-                    query = query.Where(i => i.UserName == user);
-                }
+                    .Where(i => !i.IsDeleted && i.UserName == currentUser);
 
                 // Search across ItemName, CategoryName, and username
                 if (!string.IsNullOrWhiteSpace(search))
@@ -148,11 +136,8 @@ namespace ArcaneVault.API.Controllers
                 if (string.IsNullOrEmpty(authenticatedUser))
                     return Unauthorized();
 
-                // Staff can create on behalf of another user if explicitly specified and different from self
-                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-                var targetUser = (userRole == "Staff" && !string.IsNullOrWhiteSpace(request.UserName) && request.UserName != authenticatedUser)
-                    ? request.UserName
-                    : authenticatedUser;
+                // Always use the authenticated user — Staff cannot create items on behalf of others
+                var targetUser = authenticatedUser;
 
                 // Verify target user exists
                 if (!await _db.Users.AnyAsync(u => u.UserName == targetUser && !u.IsDeleted))
@@ -228,11 +213,10 @@ namespace ArcaneVault.API.Controllers
 
                 if (item == null) return NotFound();
 
-                // Authorization: check if user is owner or staff
-                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                // Authorization: only the owner can update their own items
                 var currentUsername = User.Identity?.Name;
 
-                if (item.UserName != currentUsername && userRole != "Staff")
+                if (item.UserName != currentUsername)
                 {
                     _logger.LogWarning($"Unauthorized update attempt on item {id} by user '{currentUsername}'.");
                     return Forbid("You do not have permission to update this item.");
@@ -292,11 +276,11 @@ namespace ArcaneVault.API.Controllers
 
                 if (item == null) return NotFound();
 
-                // Authorization: check if user is owner or staff
+                // Authorization: only the owner can delete their own items
                 var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
                 var currentUsername = User.Identity?.Name;
 
-                if (item.UserName != currentUsername && userRole != "Staff")
+                if (item.UserName != currentUsername)
                 {
                     _logger.LogWarning($"Unauthorized delete attempt on item {id} by user '{currentUsername}'.");
                     return Forbid("You do not have permission to delete this item.");
