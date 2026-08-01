@@ -42,18 +42,32 @@ namespace ArcaneVault.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                // Always use authenticated user unless Staff is creating on behalf of another
+                var authenticatedUser = User.Identity?.Name;
+                if (string.IsNullOrEmpty(authenticatedUser))
+                    return Unauthorized();
+
+                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                var targetUser = (userRole == "Staff" && !string.IsNullOrWhiteSpace(request.UserName) && request.UserName != authenticatedUser)
+                    ? request.UserName
+                    : authenticatedUser;
+
+                // Validate the target user exists
+                if (!await _db.Users.AnyAsync(u => u.UserName == targetUser && !u.IsDeleted))
+                    return BadRequest(new { message = $"User '{targetUser}' not found." });
+
                 // Get interest rate for the account type and tenure
                 decimal interestRate = _fdService.GetInterestRateForType(request.AccountType, request.TenureMonths);
 
                 // Create FD account
                 var fdAccount = await _fdService.CreateFDAccountAsync(
-                    request.UserName,
+                    targetUser,
                     request.AccountType,
                     request.PrincipalAmount,
                     interestRate,
                     request.TenureMonths);
 
-                _logger.LogInformation($"FD account created for user '{request.UserName}'.");
+                _logger.LogInformation($"FD account created for user '{targetUser}' by '{authenticatedUser}'.");
 
                 return CreatedAtAction(nameof(GetFDAccount), new { id = fdAccount.FDAccountId },
                     new

@@ -735,6 +735,10 @@ namespace ArcaneVault.API.Controllers
                 if (offer.Status != "AwaitingPayment")
                     return BadRequest(new { message = $"Offer is not awaiting payment. Current status: {offer.Status}." });
 
+                // AwaitingPayment only applies to purchase offers
+                if (offer.OfferType != "Purchase" || !offer.OfferedPrice.HasValue)
+                    return BadRequest(new { message = "This offer does not require payment confirmation." });
+
                 // Check if deadline has passed
                 if (offer.PaymentDeadline.HasValue && DateTime.UtcNow > offer.PaymentDeadline.Value)
                 {

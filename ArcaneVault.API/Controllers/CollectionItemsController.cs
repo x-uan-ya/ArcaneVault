@@ -133,7 +133,7 @@ namespace ArcaneVault.API.Controllers
         }
 
         // POST api/collectionitems
-        // Creates a new collection item for the logged-in user
+        // Creates a new collection item. Always assigns to the authenticated user — ignores any userName in the request body.
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateItemRequest request)
@@ -143,8 +143,19 @@ namespace ArcaneVault.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Verify user exists
-                if (!await _db.Users.AnyAsync(u => u.UserName == request.UserName && !u.IsDeleted))
+                // Always use the authenticated user — never trust the userName from the request body
+                var authenticatedUser = User.Identity?.Name;
+                if (string.IsNullOrEmpty(authenticatedUser))
+                    return Unauthorized();
+
+                // Staff can create on behalf of another user if explicitly specified and different from self
+                var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                var targetUser = (userRole == "Staff" && !string.IsNullOrWhiteSpace(request.UserName) && request.UserName != authenticatedUser)
+                    ? request.UserName
+                    : authenticatedUser;
+
+                // Verify target user exists
+                if (!await _db.Users.AnyAsync(u => u.UserName == targetUser && !u.IsDeleted))
                     return BadRequest(new { message = "User not found." });
 
                 // Verify all category codes exist
@@ -163,7 +174,7 @@ namespace ArcaneVault.API.Controllers
                     StartingQuantity = request.StartingQuantity,
                     CurrentQuantity = request.CurrentQuantity,
                     IsDeleted = false,
-                    UserName = request.UserName
+                    UserName = targetUser
                 };
 
                 _db.CollectionItems.Add(item);
@@ -183,9 +194,9 @@ namespace ArcaneVault.API.Controllers
                     await _db.SaveChangesAsync();
                 }
 
-                _logger.LogInformation($"Collection item '{request.ItemName}' created for user '{request.UserName}' by '{User.Identity?.Name}'.");
+                _logger.LogInformation($"Collection item '{request.ItemName}' created for user '{targetUser}' by '{authenticatedUser}'.");
 
-                await _notify.SendAsync(request.UserName,
+                await _notify.SendAsync(targetUser,
                     $"✅ Item \"{item.ItemName}\" has been added to your collection.",
                     "collection", "/CollectionItems/Index");
 
